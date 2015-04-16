@@ -31,7 +31,7 @@ clrSet(gen, 'FunctionNamePostfix', '_R')
 ```S
 # Note: I need to have at least two elements in criteria. This is just a workaround.
 clrSet(gen, 'ContainsAny', c('SWIFT_API','SWIFT_API'))
-clrSet(gen, 'ContainsNone', c('DeleteAnsiStringArray','MarshaledDateTime','TS_GEOMETRY_PTR'))
+clrSet(gen, 'ContainsNone', c('DeleteAnsiStringArray', 'DeleteAnsiString', 'MarshaledDateTime', 'TS_GEOMETRY_PTR'))
 clrSet(gen, 'NotStartsWith', c('#', '//'))
 clrSet(gen, 'ToRemove', c('SWIFT_API','SWIFT_API'))
 # clrGet(gen, 'TypeMap')

@@ -362,7 +362,10 @@ CharacterVector toVectorCleanup(char** names, int size)
 
             if (returnsVal)
             {
-                sb.Append("    return " + RcppWrap(funcDef[0], "res") + ";");
+                sb.Append("    auto x = " + RcppWrap(funcDef[0], "res") + ";" + NewLineString);
+                if(funcDef[0] == "char*")
+                    sb.Append("    DeleteAnsiString(res);" + NewLineString);
+                sb.Append("    return x;");
             }
             return true;
         }
