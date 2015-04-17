@@ -239,6 +239,12 @@ CharacterVector toVectorCleanup(char** names, int size)
             return GetVariableDeclaration(funcAndArgs[0]);
         }
 
+        private string[] GetFunctionArguments(string funDef)
+        {
+            string[] funcAndArgs = GetFuncDeclAndArgs(funDef);
+            return splitOnComma(funcAndArgs[1]);
+        }
+
         private string GetFuncName(string funDef)
         {
             string[] typeAndName = GetFunctionTypeAndName(funDef);
@@ -401,19 +407,29 @@ CharacterVector toVectorCleanup(char** names, int size)
             sb.Append("(");
             if (funcAndArgs.Length > 1)
             {
-                string arg;
                 string functionArguments = funcAndArgs[1];
                 string[] args = splitOnComma(functionArguments);
-                for (int i = 0; i < args.Length - 1; i++)
-                {
-                    arg = args[i];
-                    if (!addArgument(sb, argFunc, transientArgs, arg)) return false;
+                int start = 0, end = args.Length - 1;
+                if (!appendArgs(sb, argFunc, transientArgs, args, start, end)) return false;
+                if(end > start)
                     sb.Append(", ");
-                }
-                arg = args[args.Length - 1];
+                string arg = args[args.Length - 1];
                 if (!addArgument(sb, argFunc, transientArgs, arg)) return false;
             }
             sb.Append(")");
+            return true;
+        }
+
+        private bool appendArgs(StringBuilder sb, Action<StringBuilder, string[]> argFunc, Dictionary<string, string> transientArgs, string[] args, int start, int end)
+        {
+            string arg;
+            for (int i = start; i < end; i++)
+            {
+                arg = args[i];
+                if (!addArgument(sb, argFunc, transientArgs, arg)) return false;
+                if (i < (end - 1))
+                    sb.Append(", ");
+            }
             return true;
         }
 
@@ -534,6 +550,10 @@ CharacterVector toVectorCleanup(char** names, int size)
 
         private string WrapAsRcppVector(string typename, string varname)
         {
+            if (typename == "double" ||
+                typename == "int" ||
+                typename == "bool")
+                return "Rcpp::wrap(" + varname + ")";
             return CppToRTypes(typename) + "(" + varname + ")";
         }
 
@@ -604,14 +624,39 @@ CharacterVector toVectorCleanup(char** names, int size)
             string wrapFuncName = funcName + this.FunctionNamePostfix;
             var template = @"
 // [[Rcpp::export]]
-CharacterVector %WRAPFUNCTION%(XPtr<OpaquePointer> modelInstance)
+CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
-	char** names = %FUNCTION%(modelInstance->ptr, &size);
+	char** names = %FUNCTION%(%ARGS% &size);
 	return toVectorCleanup(names, size);
 }
 ";
-            return template.Replace("%WRAPFUNCTION%", wrapFuncName).Replace("%FUNCTION%", funcName);
+            return template
+                .Replace("%WRAPARGS%", WrapArgsDecl(funDef, 0, 0))
+                .Replace("%ARGS%", FuncCallArgs(funDef, 0, 0))
+                .Replace("%WRAPFUNCTION%", wrapFuncName)
+                .Replace("%FUNCTION%", funcName);
         }
+
+        private string WrapArgsDecl(string funDef, int start, int offsetLength)
+        {
+            return CreateFunctionArgs(funDef, start, offsetLength, ApiArgToRcpp);
+        }
+
+        private string FuncCallArgs(string funDef, int start, int offsetLength)
+        {
+            return CreateFunctionArgs(funDef, start, offsetLength, ApiCallArgument, appendComma: true);
+        }
+
+        private string CreateFunctionArgs(string funDef, int start, int offsetLength, Action<StringBuilder, string[]> argFunc, bool appendComma=false)
+        {
+            StringBuilder sb = new StringBuilder();
+            var args = GetFunctionArguments(funDef);
+            int end = args.Length - 1 - offsetLength;
+            appendArgs(sb, argFunc, null, args, 0, end);
+            if (appendComma && (end > start)) sb.Append(", ");
+            return sb.ToString();
+        }
+
     }
 }
