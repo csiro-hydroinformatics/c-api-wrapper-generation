@@ -14,17 +14,17 @@ namespace Rcpp.CodeGen
         // CharacterVector nodeIds
         // char** nodeIdsChar = createAnsiStringArray(nodeIds);
         // freeAnsiStringArray(nodeIdsChar, nodeIds.length());
-        private Dictionary<string, ArgConvertion> fromRcppArgConverter;
+        private Dictionary<string, ArgConversion> fromRcppArgConverter;
 
         private List<Tuple<Func<string, bool>, Func<string, string>>> customWrappers;
 
-        private class ArgConvertion
+        private class ArgConversion
         {
             string VariablePostfix;
             string SetupTemplate;
             string CleanupTemplate;
 
-            public ArgConvertion(string variablePostfix, string setupTemplate, string cleanupTemplate)
+            public ArgConversion(string variablePostfix, string setupTemplate, string cleanupTemplate)
             {
                 VariablePostfix = variablePostfix;
                 SetupTemplate = setupTemplate;
@@ -84,8 +84,8 @@ namespace Rcpp.CodeGen
             typeMap["const int*"] = "IntegerVector";
             typeMap["const double*"] = "NumericVector";
 
-            fromRcppArgConverter = new Dictionary<string, ArgConvertion>();
-            fromRcppArgConverter["char**"] = new ArgConvertion("_charpp", "char** C_ARGNAME = createAnsiStringArray(RCPP_ARGNAME);", "freeAnsiStringArray(C_ARGNAME, RCPP_ARGNAME.length());");
+            fromRcppArgConverter = new Dictionary<string, ArgConversion>();
+            fromRcppArgConverter["char**"] = new ArgConversion("_charpp", "char** C_ARGNAME = createAnsiStringArray(RCPP_ARGNAME);", "freeAnsiStringArray(C_ARGNAME, RCPP_ARGNAME.length());");
 
             ContainsAny = new string[] { "SWIFT_API" };
             ToRemove = new string[] { "SWIFT_API" };
@@ -259,7 +259,7 @@ CharacterVector toVectorCleanup(char** names, int size)
             // // [[Rcpp::export]]
             // XPtr<OpaquePointer> RcppCloneModel(XPtr<OpaquePointer> src)
             // {
-            //     return XPtr<OpaquePointer>(new OpaquePointer(CloneModel(src->ptr)));
+            //     return XPtr<OpaquePointer>(new OpaquePointer(CloneModel(src->Get())));
             // }
 
             foreach (var c in customWrappers)
@@ -354,7 +354,7 @@ CharacterVector toVectorCleanup(char** names, int size)
 
             string[] funcDef = GetTypeAndName(funcAndArgs[0]);
             bool returnsVal = (funcDef[0].Trim() != "void");
-            // 	return XPtr<OpaquePointer>(new OpaquePointer(CloneModel(src->ptr)));
+            // 	return XPtr<OpaquePointer>(new OpaquePointer(CloneModel(src->Get())));
             sb.Append("    ");
             if (returnsVal)
                 sb.Append("auto res = ");
@@ -562,7 +562,7 @@ CharacterVector toVectorCleanup(char** names, int size)
 
             //void SetErrorCorrectionModel_R(XPtr<OpaquePointer> src, CharacterVector newModelId, CharacterVector elementId, IntegerVector length, IntegerVector seed)
             //{
-            //    SetErrorCorrectionModel(src->ptr, as<char*>(newModelId), as<char*>(elementId), as<int>(length), as<int>(seed));
+            //    SetErrorCorrectionModel(src->Get(), as<char*>(newModelId), as<char*>(elementId), as<int>(length), as<int>(seed));
             //}
             if (isKnownType(typename))
                 sb.Append(AddAs(typename, varname));
@@ -570,7 +570,7 @@ CharacterVector toVectorCleanup(char** names, int size)
             {
                 if (typename.EndsWith("**") || typename.EndsWith("PTR*"))
                     sb.Append("(void**)");
-                sb.Append(varname + "->ptr"); // src->ptr
+                sb.Append(varname + "->Get()"); // src->Get()
             }
             else
                 sb.Append(AddAs(typename, varname));
