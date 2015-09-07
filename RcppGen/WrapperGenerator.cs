@@ -16,6 +16,11 @@ namespace Rcpp.CodeGen
         // freeAnsiStringArray(nodeIdsChar, nodeIds.length());
         private Dictionary<string, ArgConversion> fromRcppArgConverter;
 
+        public void SetRcppArgConverter(string cArgType, string variablePostfix, string setupTemplate, string cleanupTemplate)
+        {
+            fromRcppArgConverter[cArgType] = new ArgConversion(variablePostfix, setupTemplate, cleanupTemplate);
+        }
+
         private List<Tuple<Func<string, bool>, Func<string, string>>> customWrappers;
 
         private class ArgConversion
@@ -76,6 +81,7 @@ namespace Rcpp.CodeGen
             typeMap["char"] = "CharacterVector";
             typeMap["double"] = "NumericVector";
             typeMap["double*"] = "NumericVector";
+            typeMap["double**"] = "NumericMatrix";
             typeMap["bool"] = "LogicalVector";
             typeMap["const char"] = "CharacterVector";
             typeMap["const int"] = "IntegerVector";
@@ -381,7 +387,7 @@ CharacterVector toVectorCleanup(char** names, int size)
             transientArgs = new Dictionary<string, string>();
             List<string> setup = new List<string>(), cleanup = new List<string>();
             string[] args = splitOnComma(functionArguments);
-            for (int i = 0; i < args.Length - 1; i++)
+            for (int i = 0; i < args.Length; i++)
             {
                 var varDecl = GetVariableDeclaration(args[i]); // "const int*" "blah"
                 addTransientVariable(varDecl, transientArgs, setup, cleanup);
