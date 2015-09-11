@@ -159,24 +159,70 @@ namespace Rcpp.CodeGen
 
     }
 
+    public class ArgConversion
+    {
+        string VariablePostfix;
+        string SetupTemplate;
+        string CleanupTemplate;
+
+        public ArgConversion(string variablePostfix, string setupTemplate, string cleanupTemplate)
+        {
+            VariablePostfix = variablePostfix;
+            SetupTemplate = setupTemplate;
+            CleanupTemplate = cleanupTemplate;
+        }
+
+        public string GetSetup(string vname)
+        {
+            return ReplaceVariables(vname, SetupTemplate);
+        }
+
+        public string ReplaceVariables(string vname, string template)
+        {
+            return template.Replace("C_ARGNAME", GetTransientVarname(vname)).Replace("RCPP_ARGNAME", vname);
+        }
+
+        public string GetTransientVarname(string vname)
+        {
+            return vname + VariablePostfix;
+        }
+
+        public string GetCleanup(string vname)
+        {
+            return ReplaceVariables(vname, CleanupTemplate);
+        }
+    }
+
+
     public class RXptrWrapperGenerator : IApiConverter
     {
         /*
 
-            	SWIFT_API OBJECTIVE_EVALUATOR_PTR CreateObjectiveCalculator(MODEL_SIMULATION_PTR modelInstance, char* obsVarId, double * observations,
-                    int arrayLength, MarshaledDateTime start, char* statisticId);
+        SWIFT_API OBJECTIVE_EVALUATOR_PTR CreateObjectiveCalculator(MODEL_SIMULATION_PTR modelInstance, char* obsVarId, double * observations,
+            int arrayLength, MarshaledDateTime start, char* statisticId);
 
-CreateObjectiveCalculator_Pkg <- function(simulation, stateName, observations, start, statistic) {
-    .Call('swift_CreateObjectiveCalculator_Pkg', PACKAGE = 'swift', simulation, stateName, observations, start, statistic)
+        CreateObjectiveCalculator_R <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
+            .Call('swift_CreateObjectiveCalculator_R', PACKAGE = 'swift', modelInstance, obsVarId, observations, arrayLength, start, statisticId)
+        }
+
+        And we want to generate something like:
+
+        CreateObjectiveCalculator_R_wrap <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
+            modelInstance_xptr <- getSwiftXptr(modelInstance)
+            xptr <- CreateObjectiveCalculator_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
+            return(mkSwiftObjRef(xptr))
+        }
+
+        CreateObjectiveCalculator_R_wrap <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
+            modelInstance_xptr <- getSwiftXptr(modelInstance)
+            xptr <- CreateObjectiveCalculator_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
+            return(mkSwiftObjRef(xptr))
+        }
+
 }
 
+*/
 
-CreateObjectiveCalculator_Pkg <- function(simulation, stateName, observations, start, statistic) {
-    .Call('swift_CreateObjectiveCalculator_Pkg', PACKAGE = 'swift', simulation, stateName, observations, start, statistic)
-}
-
-
-        */
         public string ConvertLine(string line)
         {
             throw new NotImplementedException();
@@ -203,40 +249,6 @@ CreateObjectiveCalculator_Pkg <- function(simulation, stateName, observations, s
         }
 
         private List<Tuple<Func<string, bool>, Func<string, string>>> customWrappers;
-
-        private class ArgConversion
-        {
-            string VariablePostfix;
-            string SetupTemplate;
-            string CleanupTemplate;
-
-            public ArgConversion(string variablePostfix, string setupTemplate, string cleanupTemplate)
-            {
-                VariablePostfix = variablePostfix;
-                SetupTemplate = setupTemplate;
-                CleanupTemplate = cleanupTemplate;
-            }
-
-            internal string GetSetup(string vname)
-            {
-                return ReplaceVariables(vname, SetupTemplate);
-            }
-
-            private string ReplaceVariables(string vname, string template)
-            {
-                return template.Replace("C_ARGNAME", GetTransientVarname(vname)).Replace("RCPP_ARGNAME", vname);
-            }
-
-            internal string GetTransientVarname(string vname)
-            {
-                return vname + VariablePostfix;
-            }
-
-            internal string GetCleanup(string vname)
-            {
-                return ReplaceVariables(vname, CleanupTemplate);
-            }
-        }
 
         public Dictionary<string, string> TypeMap
         {
@@ -271,86 +283,15 @@ CreateObjectiveCalculator_Pkg <- function(simulation, stateName, observations, s
             typeMap["const double*"] = "NumericVector";
 
             fromRcppArgConverter = new Dictionary<string, ArgConversion>();
-            fromRcppArgConverter["char**"] = new ArgConversion("_charpp", "char** C_ARGNAME = createAnsiStringArray(RCPP_ARGNAME);", "freeAnsiStringArray(C_ARGNAME, RCPP_ARGNAME.length());");
 
             PointersEndsWithAny = new string[] { "*", "_PTR" };
             OpaquePointerClassName = "OpaquePointer";
-            PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n" +
-                @"
-
-#ifndef STRDUP
-#ifdef _WIN32
-#define STRDUP _strdup
-#else
-#define STRDUP strdup
-#endif
-#endif
-
-#ifndef Rcpp_hpp
-#include <Rcpp.h>
-#endif
-
-using namespace Rcpp;
-
-char** createAnsiStringArray(CharacterVector charVec)
-{
-	char** res = new char*[charVec.length()];
-	for (size_t i = 0; i < charVec.length(); i++)
-		res[i] = STRDUP(as<std::string>(charVec[i]).c_str());
-	return res;
-}
-
-void freeAnsiStringArray(char ** values, int arrayLength)
-{
-	for (int i = 0; i < arrayLength; i++)
-		delete[] values[i];
-	delete[] values;
-}
-
-CharacterVector toVectorCleanup(char** names, int size)
-{
-	CharacterVector v(size);
-	for (size_t i = 0; i < size; i++)
-		v[i] = std::string(names[i]);
-	DeleteAnsiStringArray(names, size);
-	return v;
-}
-
-MarshaledDateTime toDateTimeStruct(const Datetime& dt)
-{
-    MarshaledDateTime d;
-    d.Year = dt.getYear();
-    d.Month = dt.getMonth();
-    d.Day = dt.getDay();
-    d.Hour = dt.getHours();
-    d.Minute = dt.getMinutes();
-    d.Second = dt.getSeconds();
-    return d;
-}
-
-";
-//Datetime toDateTime(const MarshaledDateTime&mdt)
-//{
-//    char sf[200];
-//    // const std::string &fmt = "%Y-%m-%d %H:%M:%OS");
-//    std::sprintf(sf, "%d-%d-%d %d:%d:%d",
-//    mdt.Year,
-//    mdt.Month,
-//    mdt.Day,
-//    mdt.Hour,
-//    mdt.Minute,
-//    mdt.Second);
-//    return Datetime(sf);
-//}
-
+            PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
 
             customWrappers = new List<Tuple<Func<string, bool>, Func<string, string>>>();
             customWrappers.Add(Tuple.Create(
                 (Func<string, bool>)ReturnsCharPP, 
                 (Func<string, string>)WrapCharPPRetVal));
-            //customWrappers.Add(Tuple.Create(
-            //    (Func<string, bool>)HasDateTimeArgument,
-            //    (Func<string, string>)WrapCharPPRetVal));
         }
 
         public string GetPreamble()
