@@ -7,7 +7,188 @@ using System.Text.RegularExpressions;
 
 namespace Rcpp.CodeGen
 {
+
+    public interface IApiConverter
+    {
+        string ConvertLine(string line);
+        string GetPreamble();
+    }
+
     public class WrapperGenerator
+    {
+        public WrapperGenerator(IApiConverter converter)
+        {
+            this.converter = converter;
+            this.filter = new HeaderFilter();
+        }
+        public WrapperGenerator(IApiConverter converter, HeaderFilter filter)
+        {
+            this.converter = converter;
+            this.filter = filter;
+        }
+
+        IApiConverter converter;
+        HeaderFilter filter;
+
+        public void CreateWrapperHeader(string inputFile, string outputFile)
+        {
+            string[] lines = filter.Filter(inputFile);
+            StringBuilder sb = new StringBuilder();
+            sb.Append(converter.GetPreamble());
+            string[] outputlines = Convert(lines);
+            for (int i = 0; i < outputlines.Length; i++)
+            {
+                sb.Append(outputlines[i]);
+            }
+            string output = sb.ToString();
+            File.WriteAllText(outputFile, output);
+        }
+
+        public string[] Convert(string[] lines)
+        {
+            //SWIFT_API ModelRunner * CloneModel(ModelRunner * src);
+            //SWIFT_API ModelRunner * CreateNewFromNetworkInfo(NodeInfo * nodes, int numNodes, LinkInfo * links, int numLinks);
+            List<string> converted = new List<string>();
+
+            //sb.Append(PrependOutputFile);
+            foreach(string lineRaw in lines)
+            {
+                string line = lineRaw.Trim();
+                string convertedLine = converter.ConvertLine(line);
+                converted.Add(convertedLine);
+            }
+            return converted.ToArray();
+        }
+    }
+
+    public class HeaderFilter
+    {
+        public HeaderFilter()
+        {
+            ContainsAny = new string[] { "SWIFT_API" };
+            ToRemove = new string[] { "SWIFT_API" };
+            ContainsNone = new string[] { "#define" };
+            NotStartsWith = new string[] { "//" };
+        }
+
+        public string[] Filter(string inputFile)
+        {
+            string input = File.ReadAllText(inputFile);
+            return FindMatchingLines(input);
+        }
+
+        public string[] FindMatchingLines(string input)
+        {
+            //SWIFT_API ModelRunner * CloneModel(ModelRunner * src);
+            //SWIFT_API ModelRunner * CreateNewFromNetworkInfo(NodeInfo * nodes, int numNodes, LinkInfo * links, int numLinks);
+            List<string> output = new List<string>();
+            using (var tr = new StringReader(input))
+            {
+                string line = "";
+                while (line != null)
+                {
+                    line = line.Trim();
+                    if (IsMatch(line))
+                    {
+                        line = prepareInLine(line);
+                        output.Add(line);
+                    }
+                    line = tr.ReadLine();
+                }
+            }
+            return output.ToArray();
+        }
+
+        private string prepareInLine(string line)
+        {
+            string s = line.Replace("\t", " ");
+            s = s.Trim();
+            s = removeToRemove(s);
+            s = s.Trim();
+            s = preprocessPointers(s);
+            return s;
+        }
+
+        private static string preprocessPointers(string s)
+        {
+            // Make all pointers types without blanks
+            var rexpPtr = new Regex(" *\\*");
+            s = rexpPtr.Replace(s, "*");
+            return s;
+        }
+
+        private string removeToRemove(string s)
+        {
+            foreach (var r in ToRemove)
+                s = s.Replace(r, "");
+            return s;
+        }
+        
+        public bool IsMatch(string line)
+        {
+            line = line.Trim();
+            if (StartsWithExcluded(line)) return false;
+            bool match = false;
+            if (ContainsAny.Length > 0)
+            {
+                foreach (string p in ContainsAny)
+                    match = match || line.Contains(p);
+                if (!match) return false;
+            }
+            match = true;
+            foreach (string p in ContainsNone)
+                if (line.Contains(p)) return false;
+
+            return match;
+        }
+
+        private bool StartsWithExcluded(string line)
+        {
+            foreach (string p in NotStartsWith)
+                if (line.StartsWith(p)) return true;
+            return false;
+        }
+
+        public string[] NotStartsWith { get; set; }
+
+        public string[] ToRemove { get; set; }
+
+        public string[] ContainsAny { get; set; }
+
+        public string[] ContainsNone { get; set; }
+
+    }
+
+    public class RXptrWrapperGenerator : IApiConverter
+    {
+        /*
+
+            	SWIFT_API OBJECTIVE_EVALUATOR_PTR CreateObjectiveCalculator(MODEL_SIMULATION_PTR modelInstance, char* obsVarId, double * observations,
+                    int arrayLength, MarshaledDateTime start, char* statisticId);
+
+CreateObjectiveCalculator_Pkg <- function(simulation, stateName, observations, start, statistic) {
+    .Call('swift_CreateObjectiveCalculator_Pkg', PACKAGE = 'swift', simulation, stateName, observations, start, statistic)
+}
+
+
+CreateObjectiveCalculator_Pkg <- function(simulation, stateName, observations, start, statistic) {
+    .Call('swift_CreateObjectiveCalculator_Pkg', PACKAGE = 'swift', simulation, stateName, observations, start, statistic)
+}
+
+
+        */
+        public string ConvertLine(string line)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string GetPreamble()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class RcppGlueWrapperGenerator : IApiConverter
     {
         private Dictionary<string, string> typeMap;
 
@@ -38,10 +219,10 @@ namespace Rcpp.CodeGen
 
             internal string GetSetup(string vname)
             {
-                return ReplaveVariables(vname, SetupTemplate);
+                return ReplaceVariables(vname, SetupTemplate);
             }
 
-            private string ReplaveVariables(string vname, string template)
+            private string ReplaceVariables(string vname, string template)
             {
                 return template.Replace("C_ARGNAME", GetTransientVarname(vname)).Replace("RCPP_ARGNAME", vname);
             }
@@ -53,7 +234,7 @@ namespace Rcpp.CodeGen
 
             internal string GetCleanup(string vname)
             {
-                return ReplaveVariables(vname, CleanupTemplate);
+                return ReplaceVariables(vname, CleanupTemplate);
             }
         }
 
@@ -63,8 +244,7 @@ namespace Rcpp.CodeGen
             set { typeMap = value; }
         }
 
-
-        public WrapperGenerator()
+        public RcppGlueWrapperGenerator()
         {
             FunctionNamePostfix = "_R";
             OpaquePointers = false;
@@ -93,10 +273,6 @@ namespace Rcpp.CodeGen
             fromRcppArgConverter = new Dictionary<string, ArgConversion>();
             fromRcppArgConverter["char**"] = new ArgConversion("_charpp", "char** C_ARGNAME = createAnsiStringArray(RCPP_ARGNAME);", "freeAnsiStringArray(C_ARGNAME, RCPP_ARGNAME.length());");
 
-            ContainsAny = new string[] { "SWIFT_API" };
-            ToRemove = new string[] { "SWIFT_API" };
-            ContainsNone = new string[] { "#define" };
-            NotStartsWith = new string[] { "//" };
             PointersEndsWithAny = new string[] { "*", "_PTR" };
             OpaquePointerClassName = "OpaquePointer";
             PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n" +
@@ -140,13 +316,46 @@ CharacterVector toVectorCleanup(char** names, int size)
 	return v;
 }
 
+MarshaledDateTime toDateTimeStruct(const Datetime& dt)
+{
+    MarshaledDateTime d;
+    d.Year = dt.getYear();
+    d.Month = dt.getMonth();
+    d.Day = dt.getDay();
+    d.Hour = dt.getHours();
+    d.Minute = dt.getMinutes();
+    d.Second = dt.getSeconds();
+    return d;
+}
 
 ";
+//Datetime toDateTime(const MarshaledDateTime&mdt)
+//{
+//    char sf[200];
+//    // const std::string &fmt = "%Y-%m-%d %H:%M:%OS");
+//    std::sprintf(sf, "%d-%d-%d %d:%d:%d",
+//    mdt.Year,
+//    mdt.Month,
+//    mdt.Day,
+//    mdt.Hour,
+//    mdt.Minute,
+//    mdt.Second);
+//    return Datetime(sf);
+//}
+
 
             customWrappers = new List<Tuple<Func<string, bool>, Func<string, string>>>();
             customWrappers.Add(Tuple.Create(
                 (Func<string, bool>)ReturnsCharPP, 
                 (Func<string, string>)WrapCharPPRetVal));
+            //customWrappers.Add(Tuple.Create(
+            //    (Func<string, bool>)HasDateTimeArgument,
+            //    (Func<string, string>)WrapCharPPRetVal));
+        }
+
+        public string GetPreamble()
+        {
+            return PrependOutputFile;
         }
 
         public bool DeclarationOnly { get; set; }
@@ -165,72 +374,17 @@ CharacterVector toVectorCleanup(char** names, int size)
 
         public string[] PointersEndsWithAny { get; set; }
 
-        public string[] NotStartsWith { get; set; }
-
-        public string[] ToRemove { get; set; }
-
-        public string[] ContainsAny { get; set; }
-
-        public string[] ContainsNone { get; set; }
-
-        public void CreateWrapperHeader(string inputFile, string outputFile)
-        {
-            string input = File.ReadAllText(inputFile);
-            string output = CHeaderToRcpp(input);
-            File.WriteAllText(outputFile, output);
-        }
-
         public void SetTypeMap(string cType, string rcppType)
         {
             typeMap[cType] = rcppType;
         }
 
-        public string CHeaderToRcpp(string input)
+        public string ConvertLine(string line)
         {
-            //SWIFT_API ModelRunner * CloneModel(ModelRunner * src);
-            //SWIFT_API ModelRunner * CreateNewFromNetworkInfo(NodeInfo * nodes, int numNodes, LinkInfo * links, int numLinks);
-            StringBuilder sb = new StringBuilder();
-            sb.Append(PrependOutputFile);
-            using (var tr = new StringReader(input))
-            {
-                string line = "";
-                while (line != null)
-                {
-                    line = line.Trim();
-                    if (IsMatch(line))
-                    {
-                        sb.Append(LineCHeaderToRcpp(line));
-                        sb.Append(NewLineString);
-                    }
-                    line = tr.ReadLine();
-                }
-                return sb.ToString();
-            }
-        }
-
-        public bool IsMatch(string line)
-        {
-            line = line.Trim();
-            if (StartsWithExcluded(line)) return false;
-            bool match = false;
-            if (ContainsAny.Length > 0)
-            {
-                foreach (string p in ContainsAny)
-                    match = match || line.Contains(p);
-                if (!match) return false;
-            }
-            match = true;
-            foreach (string p in ContainsNone)
-                if (line.Contains(p)) return false;
-
-            return match;
-        }
-
-        private bool StartsWithExcluded(string line)
-        {
-            foreach (string p in NotStartsWith)
-                if (line.StartsWith(p)) return true;
-            return false;
+            string convertedLine = string.Empty;
+            convertedLine += LineCHeaderToRcpp(line);
+            convertedLine += NewLineString;
+            return convertedLine;
         }
 
         private string GetReturnedType(string funDef)
@@ -294,7 +448,7 @@ CharacterVector toVectorCleanup(char** names, int size)
 
         private string[] GetFuncDeclAndArgs(string line)
         {
-            string s = prepareInLine(line);
+            string s = line;
             // At this point we'd have:
             //ModelRunner* CreateNewFromNetworkInfo(NodeInfo* nodes, int numNodes, LinkInfo* links, int numLinks);
             // or
@@ -302,31 +456,6 @@ CharacterVector toVectorCleanup(char** names, int size)
             s = s.Replace(");", "");
             string[] funcAndArgs = s.Split(new[] { '(' }, StringSplitOptions.RemoveEmptyEntries);
             return funcAndArgs;
-        }
-
-        private string prepareInLine(string line)
-        {
-            string s = line.Replace("\t", " ");
-            s = s.Trim();
-            s = removeToRemove(s);
-            s = s.Trim();
-            s = preprocessPointers(s);
-            return s;
-        }
-
-        private static string preprocessPointers(string s)
-        {
-            // Make all pointers types without blanks
-            var rexpPtr = new Regex(" *\\*");
-            s = rexpPtr.Replace(s, "*");
-            return s;
-        }
-
-        private string removeToRemove(string s)
-        {
-            foreach (var r in ToRemove)
-                s = s.Replace(r, "");
-            return s;
         }
 
         private bool createWrapFuncSignature(StringBuilder sb, string[] funcAndArgs)
@@ -663,6 +792,5 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             if (appendComma && (end > start)) sb.Append(", ");
             return sb.ToString();
         }
-
     }
 }
