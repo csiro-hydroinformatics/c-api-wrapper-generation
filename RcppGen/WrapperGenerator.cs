@@ -51,7 +51,7 @@ namespace Rcpp.CodeGen
             List<string> converted = new List<string>();
 
             //sb.Append(PrependOutputFile);
-            foreach(string lineRaw in lines)
+            foreach (string lineRaw in lines)
             {
                 string line = lineRaw.Trim();
                 string convertedLine = converter.ConvertLine(line);
@@ -123,7 +123,7 @@ namespace Rcpp.CodeGen
                 s = s.Replace(r, "");
             return s;
         }
-        
+
         public bool IsMatch(string line)
         {
             line = line.Trim();
@@ -194,6 +194,157 @@ namespace Rcpp.CodeGen
 
     }
 
+    public class StringHelper
+    {
+        public static string NewLineString = "\n";
+
+        public static string Concat(string[] elemts, int start, int count, string sep = " ")
+        {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < count - 1; i++)
+            {
+                sb.Append(elemts[start + i]);
+                sb.Append(sep);
+            }
+            sb.Append(elemts[start + count - 1]);
+            return sb.ToString();
+        }
+
+        public static string GetReturnedType(string funDef)
+        {
+            return GetFunctionTypeAndName(funDef).TypeName;
+        }
+
+        public static TypeAndName GetFunctionTypeAndName(string funDef)
+        {
+            FuncAndArgs funcAndArgs = GetFuncDeclAndArgs(funDef);
+            return GetVariableDeclaration(funcAndArgs.Function);
+        }
+
+        public static string GetFuncName(string funDef)
+        {
+            TypeAndName typeAndName = GetFunctionTypeAndName(funDef);
+            return typeAndName.VarName;
+        }
+
+        public static string[] GetFunctionArguments(string funDef)
+        {
+            FuncAndArgs funcAndArgs = GetFuncDeclAndArgs(funDef);
+            return SplitOnComma(funcAndArgs.Arguments);
+        }
+
+        public static string[] SplitOnComma(string functionArguments)
+        {
+            string[] args = functionArguments.Trim().Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries); //NodeInfo* nodes, int numNodes, LinkInfo* links, int numLinks
+            return args;
+        }
+
+        public static TypeAndName GetVariableDeclaration(string argString)
+        {
+            return new TypeAndName(argString);
+        }
+
+        public static FuncAndArgs GetFuncDeclAndArgs(string line)
+        {
+            return new FuncAndArgs(line);
+        }
+
+        public static bool ReturnsCharPP(string funDef)
+        {
+            return (GetReturnedType(funDef) == "char**");
+        }
+
+        public static bool appendArgs(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs, string[] args, int start, int end, string sep = ", ")
+        {
+            string arg;
+            for (int i = start; i < end; i++)
+            {
+                arg = args[i];
+                if (!addArgument(sb, argFunc, transientArgs, arg)) return false;
+                if (i < (end - 1))
+                    sb.Append(sep);
+            }
+            return true;
+        }
+
+        public static bool addArgument(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs, string arg)
+        {
+            var typeAndName = StringHelper.GetVariableDeclaration(arg);
+            if (typeAndName.Unexpected) return false;
+            string vname = typeAndName.VarName;
+            if (transientArgs != null && transientArgs.ContainsKey(vname))
+            {
+                sb.Append(transientArgs[vname]);
+                return true;
+            }
+            return ParseTypeAndName(sb, arg, argFunc);
+        }
+
+        public static bool ParseTypeAndName(StringBuilder sb, string argString, Action<StringBuilder, TypeAndName> fun = null)
+        {
+            // argString could be something like:
+            // double x
+            // const char* s
+            // ModelRunner * s
+            var typeAndName = StringHelper.GetVariableDeclaration(argString);
+
+            if (typeAndName.Unexpected) return false;
+            fun(sb, typeAndName);
+            return true;
+        }
+
+
+    }
+
+    public class TypeAndName
+    {
+        public TypeAndName(string argString)
+        {
+            // argString could be something like:
+            // double x
+            // const char* s
+            // ModelRunner * s
+            var typeAndName = argString.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);//"ModelRunner*" "CreateNewFromNetworkInfo"
+                                                                                                           // cater for things like const char* s:
+            if (typeAndName.Length > 2)
+                typeAndName = new[]{
+                    StringHelper.Concat(typeAndName, 0, typeAndName.Length-1),
+                    typeAndName[typeAndName.Length-1]};
+            if (typeAndName.Length == 2)
+            {
+                TypeName = typeAndName[0].Trim();
+                VarName = typeAndName[1].Trim();
+            }
+            else
+                Unexpected = true;
+        }
+        public string TypeName = string.Empty;
+        public string VarName = string.Empty;
+        public bool Unexpected = false;
+    }
+
+    public class FuncAndArgs
+    {
+        public FuncAndArgs(string s)
+        {
+            // At this point we'd have:
+            //ModelRunner* CreateNewFromNetworkInfo(NodeInfo* nodes, int numNodes, LinkInfo* links, int numLinks);
+            // or
+            //SWIFT_API MODEL_SIMULATION_PTR CreateNewFromNetworkInfo(NODE_INFO_PTR nodes, int numNodes, LINK_INFO_PTR links, int numLinks);
+            s = s.Replace(")", "");
+            s = s.Replace(";", "");
+            string[] funcAndArgs = s.Split(new[] { '(' }, StringSplitOptions.RemoveEmptyEntries);
+            if (funcAndArgs.Length == 0) { Unexpected = true; return; }
+            Function = funcAndArgs[0];
+            if (funcAndArgs.Length == 1) { return; }
+            Arguments = funcAndArgs[1];
+            if (funcAndArgs.Length > 2) { Unexpected = true; }
+        }
+        public string Function = string.Empty;
+        public string Arguments = string.Empty;
+        public bool Unexpected = false;
+    }
+
 
     public class RXptrWrapperGenerator : BaseApiConverter, IApiConverter
     {
@@ -202,6 +353,34 @@ namespace Rcpp.CodeGen
         {
             AssignmentSymbol = "<-";
             ReturnedValueVarname = "result";
+
+            ClearCustomWrappers();
+            CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
+            AddCustomWrapper(cw);
+
+        }
+
+        public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
+        {
+            CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
+            {
+                IsMatchFunc = StringHelper.ReturnsCharPP,
+                ApiArgToRcpp = ApiArgToRfunctionArgument,
+                ApiCallArgument = this.ApiCallArgument,
+                TransientArgsCreation = this.TransientArgCreation,
+                FunctionNamePostfix = this.FunctionNamePostfix,
+                CalledFunctionNamePostfix = this.ApiCallPostfix,
+                Template = @"
+#' docco
+%WRAPFUNCTION% <- function(%WRAPARGS%)
+{
+    %TRANSARGS%
+    result <- %FUNCTION%(%WRAPARGS%);
+    return(mkSwiftObjRef(result,'char**'))
+}
+"
+            };
+            return cw;
         }
 
         /*
@@ -235,13 +414,22 @@ namespace Rcpp.CodeGen
             if (MatchesCustomWrapper(line))
                 return ApplyCustomWrapper(line);
 
-            var funcAndArgs = GetFuncDeclAndArgs(line);
+            var funcAndArgs = StringHelper.GetFuncDeclAndArgs(line);
             if (funcAndArgs.Unexpected) return line; // bail out - just not sure what is going on.
             var sb = new StringBuilder();
             if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
             string result = "";
             result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
             return result;
+        }
+
+        private void TransientArgCreation(StringBuilder sb, TypeAndName typeAndName)
+        {
+            //    x <- getSwiftXptr(x);
+            sb.Append(typeAndName.VarName);
+            sb.Append(" <- getSwiftXptr(");
+            sb.Append(typeAndName.VarName);
+            sb.Append(");");
         }
 
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
@@ -274,7 +462,7 @@ namespace Rcpp.CodeGen
         {
             if (returnsVal)
             {
-                sb.Append("    return(mkSwiftObjRef(" + ReturnedValueVarname + ",'"+ funcDef.TypeName+ "'))");
+                sb.Append("    return(mkSwiftObjRef(" + ReturnedValueVarname + ",'" + funcDef.TypeName + "'))");
             }
         }
 
@@ -289,7 +477,7 @@ namespace Rcpp.CodeGen
     {
         protected BaseApiConverter()
         {
-            NewLineString = "\n";
+            NewLineString = StringHelper.NewLineString;
             FunctionBodyOpenDelimiter = NewLineString + "{" + NewLineString;
             FunctionBodyCloseDelimiter = NewLineString + "}" + NewLineString;
             StatementSep = ";";
@@ -316,8 +504,8 @@ namespace Rcpp.CodeGen
 
         public abstract string ConvertApiLine(string line);
 
-        protected List<Tuple<Func<string, bool>, Func<string, string>>> customWrappers =
-            new List<Tuple<Func<string, bool>, Func<string, string>>>();
+        protected List<CustomFunctionWrapper> customWrappers =
+            new List<CustomFunctionWrapper>();
 
         public string PrependOutputFile { get; set; }
 
@@ -326,147 +514,40 @@ namespace Rcpp.CodeGen
             return PrependOutputFile;
         }
 
-        public class TypeAndName
+        public void ClearCustomWrappers()
         {
-            public TypeAndName(string argString)
-            {
-                // argString could be something like:
-                // double x
-                // const char* s
-                // ModelRunner * s
-                var typeAndName = argString.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);//"ModelRunner*" "CreateNewFromNetworkInfo"
-                                                                                                               // cater for things like const char* s:
-                if (typeAndName.Length > 2)
-                    typeAndName = new[]{
-                    Concat(typeAndName, 0, typeAndName.Length-1),
-                    typeAndName[typeAndName.Length-1]};
-                if (typeAndName.Length == 2)
-                {
-                    TypeName = typeAndName[0];
-                    VarName = typeAndName[1];
-                }
-                else
-                    Unexpected = true;
-            }
-            public string TypeName = string.Empty;
-            public string VarName = string.Empty;
-            public bool Unexpected = false;
+            customWrappers.Clear();
         }
 
-        public class FuncAndArgs
+        public void AddCustomWrapper(CustomFunctionWrapperImpl cw)
         {
-            public FuncAndArgs(string s)
-            {
-                // At this point we'd have:
-                //ModelRunner* CreateNewFromNetworkInfo(NodeInfo* nodes, int numNodes, LinkInfo* links, int numLinks);
-                // or
-                //SWIFT_API MODEL_SIMULATION_PTR CreateNewFromNetworkInfo(NODE_INFO_PTR nodes, int numNodes, LINK_INFO_PTR links, int numLinks);
-                s = s.Replace(")", "");
-                s = s.Replace(";", "");
-                string[] funcAndArgs = s.Split(new[] { '(' }, StringSplitOptions.RemoveEmptyEntries);
-                if (funcAndArgs.Length == 0) { Unexpected = true; return; }
-                Function = funcAndArgs[0];
-                if (funcAndArgs.Length == 1 ) { return; }
-                Arguments = funcAndArgs[1];
-                if (funcAndArgs.Length > 2) { Unexpected = true; }
-            }
-            public string Function = string.Empty;
-            public string Arguments = string.Empty;
-            public bool Unexpected = false;
-        }
-
-        public static FuncAndArgs GetFuncDeclAndArgs(string line)
-        {
-            return new FuncAndArgs(line);
-        }
-
-        protected static bool ParseTypeAndName(StringBuilder sb, string argString, Action<StringBuilder, TypeAndName> fun = null)
-        {
-            // argString could be something like:
-            // double x
-            // const char* s
-            // ModelRunner * s
-            var typeAndName = GetVariableDeclaration(argString);
-
-            if (typeAndName.Unexpected) return false;
-            fun(sb, typeAndName);
-            return true;
-        }
-
-        protected static TypeAndName GetVariableDeclaration(string argString)
-        {
-            return new TypeAndName(argString);
-        }
-
-        protected static string Concat(string[] elemts, int start, int count, string sep = " ")
-        {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < count - 1; i++)
-            {
-                sb.Append(elemts[start + i]);
-                sb.Append(sep);
-            }
-            sb.Append(elemts[start + count - 1]);
-            return sb.ToString();
+            customWrappers.Add(cw);
         }
 
         protected static bool AddFunctionArgs(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs = null)
         {
             sb.Append("(");
-                string functionArguments = funcAndArgs.Arguments;
-                string[] args = SplitOnComma(functionArguments);
+            string functionArguments = funcAndArgs.Arguments;
+            string[] args = StringHelper.SplitOnComma(functionArguments);
             if (args.Length > 0)
             {
                 int start = 0, end = args.Length - 1;
-                if (!appendArgs(sb, argFunc, transientArgs, args, start, end)) return false;
+                if (!StringHelper.appendArgs(sb, argFunc, transientArgs, args, start, end)) return false;
                 if (end > start)
                     sb.Append(", ");
                 string arg = args[args.Length - 1];
-                if (!addArgument(sb, argFunc, transientArgs, arg)) return false;
+                if (!StringHelper.addArgument(sb, argFunc, transientArgs, arg)) return false;
             }
             sb.Append(")");
             return true;
         }
 
-        protected static bool appendArgs(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs, string[] args, int start, int end)
-        {
-            string arg;
-            for (int i = start; i < end; i++)
-            {
-                arg = args[i];
-                if (!addArgument(sb, argFunc, transientArgs, arg)) return false;
-                if (i < (end - 1))
-                    sb.Append(", ");
-            }
-            return true;
-        }
-
-        protected static bool addArgument(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs, string arg)
-        {
-            var typeAndName = GetVariableDeclaration(arg);
-            if (typeAndName.Unexpected) return false;
-            string vname = typeAndName.VarName;
-            if (transientArgs != null && transientArgs.ContainsKey(vname))
-            {
-                sb.Append(transientArgs[vname]);
-                return true;
-            }
-            return ParseTypeAndName(sb, arg, argFunc);
-        }
-
-        public static string[] SplitOnComma(string functionArguments)
-        {
-            string[] args = functionArguments.Trim().Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries); //NodeInfo* nodes, int numNodes, LinkInfo* links, int numLinks
-            return args;
-        }
-
-
         public string ApplyCustomWrapper(string line)
         {
             foreach (var c in customWrappers)
             {
-                if (c.Item1.Invoke(line))
-                    return c.Item2.Invoke(line);
+                if (c.IsMatch(line))
+                    return c.CreateWrapper(line);
             }
             return line;
         }
@@ -475,7 +556,7 @@ namespace Rcpp.CodeGen
         {
             foreach (var c in customWrappers)
             {
-                if (c.Item1.Invoke(line))
+                if (c.IsMatch(line))
                     return true;
             }
             return false;
@@ -503,10 +584,13 @@ namespace Rcpp.CodeGen
         {
             transientArgs = new Dictionary<string, string>();
             List<string> setup = new List<string>(), cleanup = new List<string>();
-            string[] args = SplitOnComma(functionArguments);
+            string[] args = StringHelper.SplitOnComma(functionArguments);
             for (int i = 0; i < args.Length; i++)
             {
-                var varDecl = GetVariableDeclaration(args[i]); // "const int*" "blah"
+                var s = args[i].Trim();
+                if (string.IsNullOrEmpty(s))
+                    continue;
+                var varDecl = StringHelper.GetVariableDeclaration(s); // "const int*" "blah"
                 addTransientVariable(varDecl, transientArgs, setup, cleanup);
             }
             transientArgsSetup = setup.ToArray();
@@ -571,7 +655,7 @@ namespace Rcpp.CodeGen
         protected bool createWrappingFunctionSignature(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argumentConverterFunction)
         {
             string funcDef = funcAndArgs.Function + FunctionNamePostfix;
-            if (!ParseTypeAndName(sb, funcDef, argumentConverterFunction)) return false;
+            if (!StringHelper.ParseTypeAndName(sb, funcDef, argumentConverterFunction)) return false;
             return AddFunctionArgs(sb, funcAndArgs, argumentConverterFunction);
         }
 
@@ -628,7 +712,7 @@ namespace Rcpp.CodeGen
         protected static void CreateBodyCleanTransientVar(StringBuilder sb, FuncAndArgs funcAndArgs, string[] transientArgsCleanup)
         {
             foreach (var item in transientArgsCleanup)
-                if(!string.IsNullOrEmpty(item))
+                if (!string.IsNullOrEmpty(item))
                     sb.AppendLine("    " + item); // e.g. freeAnsiStringArray(nodeIdsChar, nodeIds.length());
         }
 
@@ -693,9 +777,29 @@ namespace Rcpp.CodeGen
             OpaquePointerClassName = "OpaquePointer";
             PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
 
-            customWrappers.Add(Tuple.Create(
-                (Func<string, bool>)ReturnsCharPP, 
-                (Func<string, string>)WrapCharPPRetVal));
+            ClearCustomWrappers();
+            CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
+            AddCustomWrapper(cw);
+        }
+
+        public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
+        {
+            return new CustomFunctionWrapperImpl()
+            {
+                IsMatchFunc = StringHelper.ReturnsCharPP,
+                ApiArgToRcpp = ApiArgToRcpp,
+                ApiCallArgument = ApiCallArgument,
+                FunctionNamePostfix = this.FunctionNamePostfix,
+                Template = @"
+// [[Rcpp::export]]
+CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
+{
+	int size; 
+	char** names = %FUNCTION%(%ARGS% &size);
+	return toVectorCleanup(names, size);
+}
+"
+            };
         }
 
         public bool DeclarationOnly { get; set; }
@@ -705,29 +809,6 @@ namespace Rcpp.CodeGen
         public string OpaquePointerClassName { get; set; }
 
         public bool AddRcppExport { get; set; }
-
-        private string GetReturnedType(string funDef)
-        {
-            return GetFunctionTypeAndName(funDef).TypeName;
-        }
-
-        private TypeAndName GetFunctionTypeAndName(string funDef)
-        {
-            FuncAndArgs funcAndArgs = GetFuncDeclAndArgs(funDef);
-            return GetVariableDeclaration(funcAndArgs.Function);
-        }
-
-        private string[] GetFunctionArguments(string funDef)
-        {
-            FuncAndArgs funcAndArgs = GetFuncDeclAndArgs(funDef);
-            return SplitOnComma(funcAndArgs.Arguments);
-        }
-
-        private string GetFuncName(string funDef)
-        {
-            TypeAndName typeAndName = GetFunctionTypeAndName(funDef);
-            return typeAndName.VarName;
-        }
 
         public override string ConvertApiLine(string line)
         {
@@ -744,7 +825,7 @@ namespace Rcpp.CodeGen
             if (MatchesCustomWrapper(line))
                 return ApplyCustomWrapper(line);
 
-            var funcAndArgs = GetFuncDeclAndArgs(line);
+            var funcAndArgs = StringHelper.GetFuncDeclAndArgs(line);
             if (funcAndArgs.Unexpected) return line; // bail out - just not sure what is going on.
             var sb = new StringBuilder();
             if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
@@ -774,11 +855,11 @@ namespace Rcpp.CodeGen
             {
                 sb.Append("    auto x = " + RcppWrap(funcDef.TypeName, ReturnedValueVarname) + StatementSep + NewLineString);
                 if (funcDef.TypeName == "char*")
-                    sb.Append("    DeleteAnsiString("+ ReturnedValueVarname + ");" + NewLineString);
+                    sb.Append("    DeleteAnsiString(" + ReturnedValueVarname + ");" + NewLineString);
                 sb.Append("    return x;");
             }
         }
-        
+
         private void ApiArgToRcpp(StringBuilder sb, TypeAndName typeAndName)
         {
             var rt = typeAndName.TypeName;
@@ -872,52 +953,88 @@ namespace Rcpp.CodeGen
             if (TypeMap.ContainsKey(s)) return TypeMap[s]; else return s;
         }
 
+
+    }
+
+    public interface CustomFunctionWrapper
+    {
+        string CreateWrapper(string funcDef);
+        bool IsMatch(string funcDef);
+    }
+
+    public class CustomFunctionWrapperImpl : CustomFunctionWrapper
+    {
+
+        public CustomFunctionWrapperImpl()
+        {
+        }
+
+        public string Template;
+        public string argstvar = "%ARGS%";
+        public string wrapargstvar = "%WRAPARGS%";
+        public string functvar = "%FUNCTION%";
+        public string wrapfunctvar = "%WRAPFUNCTION%";
+        public string transargtvar = "%TRANSARGS%";
         
-        // Below are more tricky ones, not yet fully fleshed out support.
 
+        public string FunctionNamePostfix = "";
+        public string CalledFunctionNamePostfix = "";
+        
 
-        public bool ReturnsCharPP(string funDef)
+        public string CreateWrapper(string funDef)
         {
-            return (GetReturnedType(funDef) == "char**");
-        }
-
-        public string WrapCharPPRetVal(string funDef)
-        {
-            string funcName = GetFuncName(funDef);
+            string funcName = StringHelper.GetFuncName(funDef);
             string wrapFuncName = funcName + this.FunctionNamePostfix;
-            var template = @"
-// [[Rcpp::export]]
-CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
-{
-	int size; 
-	char** names = %FUNCTION%(%ARGS% &size);
-	return toVectorCleanup(names, size);
-}
-";
-            return template
-                .Replace("%WRAPARGS%", WrapArgsDecl(funDef, 0, 0))
-                .Replace("%ARGS%", FuncCallArgs(funDef, 0, 0))
-                .Replace("%WRAPFUNCTION%", wrapFuncName)
-                .Replace("%FUNCTION%", funcName);
+            string calledfuncName = funcName + this.CalledFunctionNamePostfix;
+            return Template
+                .Replace(wrapargstvar, WrapArgsDecl(funDef, 0, 0))
+                .Replace(argstvar, FuncCallArgs(funDef, 0, 0))
+                .Replace(wrapfunctvar, wrapFuncName)
+                .Replace(functvar, calledfuncName)
+                .Replace(transargtvar, TransientArgs(funDef, 0, 0));
         }
+
+        public bool IsMatch(string funDef)
+        {
+            if (IsMatchFunc == null) return false;
+            return IsMatchFunc(funDef);
+        }
+
+        public Func<string, bool> IsMatchFunc = null;
+
+        // Below are more tricky ones, not yet fully fleshed out support.
 
         private string WrapArgsDecl(string funDef, int start, int offsetLength)
         {
-            return CreateFunctionArgs(funDef, start, offsetLength, ApiArgToRcpp);
+            if (ApiArgToRcpp == null) return string.Empty;
+            return ProcessFunctionArguments(funDef, start, offsetLength, ApiArgToRcpp);
+        }
+
+        public Action<StringBuilder, TypeAndName> ApiArgToRcpp = null;
+        public Action<StringBuilder, TypeAndName> ApiCallArgument = null;
+        public Action<StringBuilder, TypeAndName> TransientArgsCreation = null;
+        
+        private string TransientArgs(string funDef, int start, int offsetLength)
+        {
+            if (TransientArgsCreation == null) return string.Empty;
+            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCreation, appendSeparator: true, sep: StringHelper.NewLineString);
+            result += StringHelper.NewLineString;
+            return result;
         }
 
         private string FuncCallArgs(string funDef, int start, int offsetLength)
         {
-            return CreateFunctionArgs(funDef, start, offsetLength, ApiCallArgument, appendComma: true);
+            if (ApiCallArgument == null) return string.Empty;
+            return ProcessFunctionArguments(funDef, start, offsetLength, ApiCallArgument, appendSeparator: true);
         }
 
-        private string CreateFunctionArgs(string funDef, int start, int offsetLength, Action<StringBuilder, TypeAndName> argFunc, bool appendComma=false)
+        private string ProcessFunctionArguments(string funDef, int start, int offsetLength, Action<StringBuilder, TypeAndName> argFunc, bool appendSeparator = false, string sep=", ")
         {
             StringBuilder sb = new StringBuilder();
-            var args = GetFunctionArguments(funDef);
+            var args = StringHelper.GetFunctionArguments(funDef);
             int end = args.Length - 1 - offsetLength;
-            appendArgs(sb, argFunc, null, args, 0, end);
-            if (appendComma && (end > start)) sb.Append(", ");
+            StringHelper.appendArgs(sb, argFunc, null, args, 0, end, sep=sep);
+            if (appendSeparator && (end > start)) sb.Append(sep);
             return sb.ToString();
         }
     }
