@@ -358,6 +358,9 @@ namespace Rcpp.CodeGen
             CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
             AddCustomWrapper(cw);
 
+            GenerateRoxygenDoc = true;
+            RoxygenDocPostamble = string.Empty;
+
         }
 
         public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
@@ -417,6 +420,11 @@ namespace Rcpp.CodeGen
             var funcAndArgs = StringHelper.GetFuncDeclAndArgs(line);
             if (funcAndArgs.Unexpected) return line; // bail out - just not sure what is going on.
             var sb = new StringBuilder();
+            if (GenerateRoxygenDoc)
+            {
+                if (!createWrapFuncRoxydoc(sb, funcAndArgs))
+                    return line;
+            }
             if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
             string result = "";
             result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
@@ -444,9 +452,30 @@ namespace Rcpp.CodeGen
             sb.Append(typeAndName.VarName);
         }
 
+        public bool GenerateRoxygenDoc { get; set; }
+
+        public string RoxygenDocPostamble { get; set; }
+
+        private bool createWrapFuncRoxydoc(StringBuilder sb, FuncAndArgs funcAndArgs)
+        {
+            var funcDecl = GetTypeAndName(funcAndArgs.Function);
+            string funcName = funcDecl.VarName + FunctionNamePostfix ;
+            sb.AppendLine("#' " + funcName);
+            sb.AppendLine("#' ");
+            sb.AppendLine("#' " + funcName + " Wrapper function for " + funcDecl.VarName);
+            sb.AppendLine("#' ");
+            var funcArgs = GetFuncArguments(funcAndArgs);
+            for (int i = 0; i < funcArgs.Length; i++)
+            {
+                var v = GetTypeAndName(funcArgs[i]);
+                sb.Append("#' @param " + v.VarName + " R type equivalent for C++ type " + v.TypeName + NewLineString);
+            }
+            sb.AppendLine(RoxygenDocPostamble);
+            return true;
+        }
+
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
-            sb.Append("#' docco" + NewLineString);
             var funcDecl = GetTypeAndName(funcAndArgs.Function);
             string funcDef = funcDecl.VarName + FunctionNamePostfix + " <- function";
             sb.Append(funcDef);
@@ -527,8 +556,7 @@ namespace Rcpp.CodeGen
         protected static bool AddFunctionArgs(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs = null)
         {
             sb.Append("(");
-            string functionArguments = funcAndArgs.Arguments;
-            string[] args = StringHelper.SplitOnComma(functionArguments);
+            string[] args = GetFuncArguments(funcAndArgs);
             if (args.Length > 0)
             {
                 int start = 0, end = args.Length - 1;
@@ -540,6 +568,13 @@ namespace Rcpp.CodeGen
             }
             sb.Append(")");
             return true;
+        }
+
+        protected static string[] GetFuncArguments(FuncAndArgs funcAndArgs)
+        {
+            string functionArguments = funcAndArgs.Arguments;
+            string[] args = StringHelper.SplitOnComma(functionArguments);
+            return args;
         }
 
         public string ApplyCustomWrapper(string line)
@@ -1033,7 +1068,7 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             StringBuilder sb = new StringBuilder();
             var args = StringHelper.GetFunctionArguments(funDef);
             int end = args.Length - 1 - offsetLength;
-            StringHelper.appendArgs(sb, argFunc, null, args, 0, end, sep=sep);
+            StringHelper.appendArgs(sb, argFunc, null, args, 0, end, sep);
             if (appendSeparator && (end > start)) sb.Append(sep);
             return sb.ToString();
         }
