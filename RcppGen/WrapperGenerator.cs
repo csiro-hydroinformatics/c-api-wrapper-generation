@@ -8,6 +8,10 @@ using System.Text.RegularExpressions;
 namespace Rcpp.CodeGen
 {
 
+    /// <summary>
+    /// An interface definition for objects that parse a 
+    /// C API line by line and convert to related functions.
+    /// </summary>
     public interface IApiConverter
     {
         string ConvertLine(string line);
@@ -345,160 +349,90 @@ namespace Rcpp.CodeGen
         public bool Unexpected = false;
     }
 
-
-    public class RXptrWrapperGenerator : BaseApiConverter, IApiConverter
+    /// <summary>
+    /// Interface definition for finding functions that need a 
+    /// more advanced conversion, considering them "as a whole" when parsing.
+    /// </summary>
+    public interface ICustomFunctionWrapper
     {
+        string CreateWrapper(string funcDef);
+        bool IsMatch(string funcDef);
+    }
 
-        public RXptrWrapperGenerator()
+    /// <summary>
+    /// A default implementation for finding functions that need a 
+    /// more advanced conversion, considering them "as a whole" when parsing.
+    /// </summary>
+    public class CustomFunctionWrapperImpl : ICustomFunctionWrapper
+    {
+        public CustomFunctionWrapperImpl() { }
+
+        public string Template;
+        public string argstvar = "%ARGS%";
+        public string wrapargstvar = "%WRAPARGS%";
+        public string functvar = "%FUNCTION%";
+        public string wrapfunctvar = "%WRAPFUNCTION%";
+        public string transargtvar = "%TRANSARGS%";
+        
+
+        public string FunctionNamePostfix = "";
+        public string CalledFunctionNamePostfix = "";
+        
+        public string CreateWrapper(string funDef)
         {
-            AssignmentSymbol = "<-";
-            ReturnedValueVarname = "result";
-
-            ClearCustomWrappers();
-            CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
-            AddCustomWrapper(cw);
-
-            GenerateRoxygenDoc = true;
-            RoxygenDocPostamble = string.Empty;
-
+            string funcName = StringHelper.GetFuncName(funDef);
+            string wrapFuncName = funcName + this.FunctionNamePostfix;
+            string calledfuncName = funcName + this.CalledFunctionNamePostfix;
+            return Template
+                .Replace(wrapargstvar, WrapArgsDecl(funDef, 0, 0))
+                .Replace(argstvar, FuncCallArgs(funDef, 0, 0))
+                .Replace(wrapfunctvar, wrapFuncName)
+                .Replace(functvar, calledfuncName)
+                .Replace(transargtvar, TransientArgs(funDef, 0, 0));
         }
 
-        public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
+        public bool IsMatch(string funDef)
         {
-            CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
-            {
-                IsMatchFunc = StringHelper.ReturnsCharPP,
-                ApiArgToRcpp = ApiArgToRfunctionArgument,
-                ApiCallArgument = this.ApiCallArgument,
-                TransientArgsCreation = this.TransientArgCreation,
-                FunctionNamePostfix = this.FunctionNamePostfix,
-                CalledFunctionNamePostfix = this.ApiCallPostfix,
-                Template = @"
-#' docco
-%WRAPFUNCTION% <- function(%WRAPARGS%)
-{
-    %TRANSARGS%
-    result <- %FUNCTION%(%WRAPARGS%);
-    return(mkSwiftObjRef(result,'char**'))
-}
-"
-            };
-            return cw;
+            if (IsMatchFunc == null) return false;
+            return IsMatchFunc(funDef);
         }
 
-        /*
+        public Func<string, bool> IsMatchFunc = null;
 
-        SWIFT_API OBJECTIVE_EVALUATOR_PTR CreateObjectiveCalculator(MODEL_SIMULATION_PTR modelInstance, char* obsVarId, double * observations,
-            int arrayLength, MarshaledDateTime start, char* statisticId);
+        // Below are more tricky ones, not yet fully fleshed out support.
 
-        CreateObjectiveCalculator_R <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
-            .Call('swift_CreateObjectiveCalculator_R', PACKAGE = 'swift', modelInstance, obsVarId, observations, arrayLength, start, statisticId)
-        }
-
-        And we want to generate something like:
-
-        CreateObjectiveCalculator_R_wrap <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
-            modelInstance_xptr <- getSwiftXptr(modelInstance)
-            xptr <- CreateObjectiveCalculator_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
-            return(mkSwiftObjRef(xptr))
-        }
-
-        SWIFT_API_FUNCNAME_R_wrap <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
-            modelInstance_xptr <- getSwiftXptr(modelInstance)
-            xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
-            return(mkSwiftObjRef(xptr))
-        }
-
-}
-
-*/
-        public override string ConvertApiLine(string line)
+        private string WrapArgsDecl(string funDef, int start, int offsetLength)
         {
-            if (MatchesCustomWrapper(line))
-                return ApplyCustomWrapper(line);
+            if (ApiArgToRcpp == null) return string.Empty;
+            return ProcessFunctionArguments(funDef, start, offsetLength, ApiArgToRcpp);
+        }
 
-            var funcAndArgs = StringHelper.GetFuncDeclAndArgs(line);
-            if (funcAndArgs.Unexpected) return line; // bail out - just not sure what is going on.
-            var sb = new StringBuilder();
-            if (GenerateRoxygenDoc)
-            {
-                if (!createWrapFuncRoxydoc(sb, funcAndArgs))
-                    return line;
-            }
-            if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
-            string result = "";
-            result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
+        public Action<StringBuilder, TypeAndName> ApiArgToRcpp = null;
+        public Action<StringBuilder, TypeAndName> ApiCallArgument = null;
+        public Action<StringBuilder, TypeAndName> TransientArgsCreation = null;
+        
+        private string TransientArgs(string funDef, int start, int offsetLength)
+        {
+            if (TransientArgsCreation == null) return string.Empty;
+            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCreation, appendSeparator: true, sep: StringHelper.NewLineString);
+            result += StringHelper.NewLineString;
             return result;
         }
 
-        private void TransientArgCreation(StringBuilder sb, TypeAndName typeAndName)
+        private string FuncCallArgs(string funDef, int start, int offsetLength)
         {
-            //    x <- getSwiftXptr(x);
-            sb.Append(typeAndName.VarName);
-            sb.Append(" <- getSwiftXptr(");
-            sb.Append(typeAndName.VarName);
-            sb.Append(");");
+            if (ApiCallArgument == null) return string.Empty;
+            return ProcessFunctionArguments(funDef, start, offsetLength, ApiCallArgument, appendSeparator: true);
         }
 
-        private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
+        private string ProcessFunctionArguments(string funDef, int start, int offsetLength, Action<StringBuilder, TypeAndName> argFunc, bool appendSeparator = false, string sep=", ")
         {
-            //    xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
-            // in context:
-            //SWIFT_API_FUNCNAME_R_wrap < -function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
-            //    modelInstance_xptr < -getSwiftXptr(modelInstance)
-            //    xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
-            //    return (mkSwiftObjRef(xptr))
-            //}
-            sb.Append(typeAndName.VarName);
-        }
-
-        public bool GenerateRoxygenDoc { get; set; }
-
-        public string RoxygenDocPostamble { get; set; }
-
-        private bool createWrapFuncRoxydoc(StringBuilder sb, FuncAndArgs funcAndArgs)
-        {
-            var funcDecl = GetTypeAndName(funcAndArgs.Function);
-            string funcName = funcDecl.VarName + FunctionNamePostfix ;
-            sb.AppendLine("#' " + funcName);
-            sb.AppendLine("#' ");
-            sb.AppendLine("#' " + funcName + " Wrapper function for " + funcDecl.VarName);
-            sb.AppendLine("#' ");
-            var funcArgs = GetFuncArguments(funcAndArgs);
-            for (int i = 0; i < funcArgs.Length; i++)
-            {
-                var v = GetTypeAndName(funcArgs[i]);
-                sb.Append("#' @param " + v.VarName + " R type equivalent for C++ type " + v.TypeName + NewLineString);
-            }
-            sb.AppendLine(RoxygenDocPostamble);
-            return true;
-        }
-
-        private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
-        {
-            var funcDecl = GetTypeAndName(funcAndArgs.Function);
-            string funcDef = funcDecl.VarName + FunctionNamePostfix + " <- function";
-            sb.Append(funcDef);
-            return AddFunctionArgs(sb, funcAndArgs, ApiArgToRfunctionArgument);
-        }
-
-        private void ApiArgToRfunctionArgument(StringBuilder sb, TypeAndName typeAndName)
-        {
-            sb.Append(typeAndName.VarName);
-        }
-
-        protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
-        {
-            if (returnsVal)
-            {
-                sb.Append("    return(mkSwiftObjRef(" + ReturnedValueVarname + ",'" + funcDef.TypeName + "'))");
-            }
-        }
-
-        protected override void AppendReturnedValueDeclaration(StringBuilder sb)
-        {
-            sb.Append(ReturnedValueVarname);
-            sb.Append(" "); sb.Append(AssignmentSymbol); sb.Append(" ");
+            StringBuilder sb = new StringBuilder();
+            var args = StringHelper.GetFunctionArguments(funDef);
+            int end = args.Length - 1 - offsetLength;
+            StringHelper.appendArgs(sb, argFunc, null, args, 0, end, sep);
+            if (appendSeparator && (end > start)) sb.Append(sep);
+            return sb.ToString();
         }
     }
 
@@ -511,6 +445,7 @@ namespace Rcpp.CodeGen
             FunctionBodyCloseDelimiter = NewLineString + "}" + NewLineString;
             StatementSep = ";";
             ApiCallPostfix = string.Empty;
+            PointersEndsWithAny = new string[] { "*", "_PTR" };
         }
 
         public string ApiCallPostfix { get; set; }
@@ -531,10 +466,34 @@ namespace Rcpp.CodeGen
             return convertedLine;
         }
 
-        public abstract string ConvertApiLine(string line);
+        public string ConvertApiLine(string line)
+        {
+            if (MatchesCustomWrapper(line))
+                return ApplyCustomWrapper(line);
 
-        protected List<CustomFunctionWrapper> customWrappers =
-            new List<CustomFunctionWrapper>();
+            var funcAndArgs = StringHelper.GetFuncDeclAndArgs(line);
+            if (funcAndArgs.Unexpected) 
+                return line; // bail out - just not sure what is going on.
+            return ConvertApiLineSpecific(line, funcAndArgs);
+        }
+
+        public abstract string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs);
+
+        protected string DefaultAnsiCToWrapperType(string rt)
+        {
+            var s = rt.Trim();
+            if (TypeMap.ContainsKey(s)) return TypeMap[s]; else return s;
+        }
+
+        protected static void ConvertPointerTypeToCapi(StringBuilder sb, string typename, string varname)
+        {
+            if (typename.EndsWith("**") || typename.EndsWith("PTR*"))
+                sb.Append("(void**)");
+            sb.Append(varname + "->Get()"); // src->Get()
+        }
+
+        protected List<ICustomFunctionWrapper> customWrappers =
+            new List<ICustomFunctionWrapper>();
 
         public string PrependOutputFile { get; set; }
 
@@ -605,6 +564,11 @@ namespace Rcpp.CodeGen
             set { typeMap = value; }
         }
 
+        /// <summary>
+        /// Sets a mapping from a C type to a corresponding type in the target language
+        /// </summary>
+        /// <param name="cType"></param>
+        /// <param name="rcppType"></param>
         public void SetTypeMap(string cType, string rcppType)
         {
             typeMap[cType] = rcppType;
@@ -771,6 +735,160 @@ namespace Rcpp.CodeGen
         public string ReturnedValueVarname { get; set; }
     }
 
+    /// <summary>
+    /// Converts C API functions declarations to 
+    /// R code wrapping/unwrapping external pointers.
+    /// </summary>
+    public class RXptrWrapperGenerator : BaseApiConverter, IApiConverter
+    {
+
+        public RXptrWrapperGenerator()
+        {
+            AssignmentSymbol = "<-";
+            ReturnedValueVarname = "result";
+
+            ClearCustomWrappers();
+            CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
+            AddCustomWrapper(cw);
+
+            GenerateRoxygenDoc = true;
+            RoxygenDocPostamble = string.Empty;
+
+        }
+
+        public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
+        {
+            CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
+            {
+                IsMatchFunc = StringHelper.ReturnsCharPP,
+                ApiArgToRcpp = ApiArgToRfunctionArgument,
+                ApiCallArgument = this.ApiCallArgument,
+                TransientArgsCreation = this.TransientArgCreation,
+                FunctionNamePostfix = this.FunctionNamePostfix,
+                CalledFunctionNamePostfix = this.ApiCallPostfix,
+                Template = @"
+#' docco
+%WRAPFUNCTION% <- function(%WRAPARGS%)
+{
+    %TRANSARGS%
+    result <- %FUNCTION%(%WRAPARGS%);
+    return(mkSwiftObjRef(result,'char**'))
+}
+"
+            };
+            return cw;
+        }
+
+        /*
+
+        SWIFT_API OBJECTIVE_EVALUATOR_PTR CreateObjectiveCalculator(MODEL_SIMULATION_PTR modelInstance, char* obsVarId, double * observations,
+            int arrayLength, MarshaledDateTime start, char* statisticId);
+
+        CreateObjectiveCalculator_R <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
+            .Call('swift_CreateObjectiveCalculator_R', PACKAGE = 'swift', modelInstance, obsVarId, observations, arrayLength, start, statisticId)
+        }
+
+        And we want to generate something like:
+
+        CreateObjectiveCalculator_R_wrap <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
+            modelInstance_xptr <- getSwiftXptr(modelInstance)
+            xptr <- CreateObjectiveCalculator_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
+            return(mkSwiftObjRef(xptr))
+        }
+
+        SWIFT_API_FUNCNAME_R_wrap <- function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
+            modelInstance_xptr <- getSwiftXptr(modelInstance)
+            xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
+            return(mkSwiftObjRef(xptr))
+        }
+
+}
+
+*/
+        public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
+        {
+            var sb = new StringBuilder();
+            if (GenerateRoxygenDoc)
+            {
+                if (!createWrapFuncRoxydoc(sb, funcAndArgs))
+                    return line;
+            }
+            if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
+            string result = "";
+            result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
+            return result;
+        }
+
+        private void TransientArgCreation(StringBuilder sb, TypeAndName typeAndName)
+        {
+            //    x <- getSwiftXptr(x);
+            sb.Append(typeAndName.VarName);
+            sb.Append(" <- getSwiftXptr(");
+            sb.Append(typeAndName.VarName);
+            sb.Append(");");
+        }
+
+        private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
+        {
+            //    xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
+            // in context:
+            //SWIFT_API_FUNCNAME_R_wrap < -function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
+            //    modelInstance_xptr < -getSwiftXptr(modelInstance)
+            //    xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
+            //    return (mkSwiftObjRef(xptr))
+            //}
+            sb.Append(typeAndName.VarName);
+        }
+
+        public bool GenerateRoxygenDoc { get; set; }
+
+        public string RoxygenDocPostamble { get; set; }
+
+        private bool createWrapFuncRoxydoc(StringBuilder sb, FuncAndArgs funcAndArgs)
+        {
+            var funcDecl = GetTypeAndName(funcAndArgs.Function);
+            string funcName = funcDecl.VarName + FunctionNamePostfix ;
+            sb.AppendLine("#' " + funcName);
+            sb.AppendLine("#' ");
+            sb.AppendLine("#' " + funcName + " Wrapper function for " + funcDecl.VarName);
+            sb.AppendLine("#' ");
+            var funcArgs = GetFuncArguments(funcAndArgs);
+            for (int i = 0; i < funcArgs.Length; i++)
+            {
+                var v = GetTypeAndName(funcArgs[i]);
+                sb.Append("#' @param " + v.VarName + " R type equivalent for C++ type " + v.TypeName + NewLineString);
+            }
+            sb.AppendLine(RoxygenDocPostamble);
+            return true;
+        }
+
+        private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
+        {
+            var funcDecl = GetTypeAndName(funcAndArgs.Function);
+            string funcDef = funcDecl.VarName + FunctionNamePostfix + " <- function";
+            sb.Append(funcDef);
+            return AddFunctionArgs(sb, funcAndArgs, ApiArgToRfunctionArgument);
+        }
+
+        private void ApiArgToRfunctionArgument(StringBuilder sb, TypeAndName typeAndName)
+        {
+            sb.Append(typeAndName.VarName);
+        }
+
+        protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
+        {
+            if (returnsVal)
+            {
+                sb.Append("    return(mkSwiftObjRef(" + ReturnedValueVarname + ",'" + funcDef.TypeName + "'))");
+            }
+        }
+
+        protected override void AppendReturnedValueDeclaration(StringBuilder sb)
+        {
+            sb.Append(ReturnedValueVarname);
+            sb.Append(" "); sb.Append(AssignmentSymbol); sb.Append(" ");
+        }
+    }
 
     public class RcppGlueWrapperGenerator : BaseApiConverter, IApiConverter
     {
@@ -808,7 +926,6 @@ namespace Rcpp.CodeGen
             SetTypeMap("const int*", "IntegerVector");
             SetTypeMap("const double*", "NumericVector");
 
-            PointersEndsWithAny = new string[] { "*", "_PTR" };
             OpaquePointerClassName = "OpaquePointer";
             PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
 
@@ -845,7 +962,7 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
 
         public bool AddRcppExport { get; set; }
 
-        public override string ConvertApiLine(string line)
+        public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
         {
             //SWIFT_API ModelRunner * CloneModel(ModelRunner * src);
             //SWIFT_API ModelRunner * CreateNewFromNetworkInfo(NodeInfo * nodes, int numNodes, LinkInfo * links, int numLinks);
@@ -856,12 +973,6 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             //     return XPtr<OpaquePointer>(new OpaquePointer(CloneModel(src->Get())));
             // }
 
-
-            if (MatchesCustomWrapper(line))
-                return ApplyCustomWrapper(line);
-
-            var funcAndArgs = StringHelper.GetFuncDeclAndArgs(line);
-            if (funcAndArgs.Unexpected) return line; // bail out - just not sure what is going on.
             var sb = new StringBuilder();
             if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
             if (DeclarationOnly)
@@ -947,11 +1058,7 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             if (IsKnownType(typename))
                 sb.Append(AddAs(typename, varname));
             else if (IsPointer(typename))
-            {
-                if (typename.EndsWith("**") || typename.EndsWith("PTR*"))
-                    sb.Append("(void**)");
-                sb.Append(varname + "->Get()"); // src->Get()
-            }
+                ConvertPointerTypeToCapi(sb, typename, varname);
             else
                 sb.Append(AddAs(typename, varname));
         }
@@ -984,93 +1091,213 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
 
         private string CppToRTypes(string rt)
         {
-            var s = rt.Trim();
-            if (TypeMap.ContainsKey(s)) return TypeMap[s]; else return s;
+            return DefaultAnsiCToWrapperType(rt); 
         }
-
-
     }
 
-    public interface CustomFunctionWrapper
+    public class CppApiWrapperGenerator : BaseApiConverter, IApiConverter
     {
-        string CreateWrapper(string funcDef);
-        bool IsMatch(string funcDef);
+        public CppApiWrapperGenerator()
+        {
+            AssignmentSymbol = "=";
+            ReturnedValueVarname = "result";
+            FunctionNamePostfix = "_cpp";
+            //OpaquePointers = false;
+            DeclarationOnly = false;
+            //AddRcppExport = true;
+            NewLineString = StringHelper.NewLineString;
+
+            SetTypeMap("void", "void");
+            SetTypeMap("int", "int");
+            SetTypeMap("int*", "int*");
+            //SetTypeMap("char**", "CharacterVector");
+            SetTypeMap("char*", "std::string");
+            SetTypeMap("char", "std::string");
+            SetTypeMap("double", "double");
+            SetTypeMap("double*", "double*");
+            SetTypeMap("double**", "double**");
+            SetTypeMap("bool", "bool");
+            SetTypeMap("const char", "const char");
+            SetTypeMap("const int", "const int");
+            SetTypeMap("const double", "const double");
+            SetTypeMap("const char*", "const string");
+            SetTypeMap("const int*", "const vector<int>");
+            SetTypeMap("const double*", "const vector<double>");
+
+            OpaquePointerClassName = "OpaquePointer";
+            PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
+
+        }
+
+        public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
+        {
+            //SWIFT_API MODEL_SIMULATION_PTR CloneModel(MODEL_SIMULATION_PTR src);
+	        //SWIFT_API char** CheckSimulationErrors(MODEL_SIMULATION_PTR simulation, int* size);
+            // And as an output we want for instance (if using opaque pointers).
+            // 
+            // OpaquePointer* CloneModel_cpp(OpaquePointer* src)
+            // {
+            //     return new OpaquePointer(CloneModel(src->Get()));
+            // }
+            // std::vector<std::string> CheckSimulationErrors(OpaquePointer simulation);
+            // {
+            //   int size;
+            //   char** names = CheckSimulationErrors(simulation->Get(), &size);
+            //   return toVectorCleanup(names, size);
+            // }
+
+            var sb = new StringBuilder();
+            if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
+            if (DeclarationOnly)
+            {
+                sb.Append(StatementSep);
+                return sb.ToString();
+            }
+            else
+            {
+                string result = "";
+                result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
+                return result;
+            }
+
+        }
+
+        public bool DeclarationOnly { get; set; }
+
+        private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
+        {
+            CppApiToCApiType(sb, typeAndName.TypeName, typeAndName.VarName);
+        }
+
+        private void CppApiToCApiType(StringBuilder sb, string typename, string varname)
+        {
+            //void SetErrorCorrectionModel_R(OpaquePointer* src, const std::string& newModelId, const std::string& elementId, int length, int seed)
+            //{
+            //    SetErrorCorrectionModel(src->Get(), newModelId.c_str(), elementId.c_str(), length, seed);
+            //}
+
+            if (IsKnownType(typename))
+                sb.Append(AddAs(typename, varname));
+            else if (IsPointer(typename))
+                ConvertPointerTypeToCapi(sb, typename, varname);
+            else
+                sb.Append(varname);
+        }
+
+        private string AddAs(string typename, string varname)
+        {
+            if (typename.EndsWith("char*")) // C API is char*, so cpp is a std::string
+                return varname + ".c_str()";
+            return ("(" + typename + ")" + varname);
+        }
+
+        private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
+        {
+            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp);
+        }
+
+        private void ApiArgToRcpp(StringBuilder sb, TypeAndName typeAndName)
+        {
+            var rt = typeAndName.TypeName;
+            ApiTypeToCppApi(sb, rt);
+            sb.Append(" ");
+            sb.Append(typeAndName.VarName);
+        }
+
+        private void ApiTypeToCppApi(StringBuilder sb, string typename)
+        {
+            if (IsKnownType(typename))
+                sb.Append(AnsiCToCppTypes(typename));
+            else if (IsPointer(typename))
+                sb.Append(createXPtr(typename)); // XPtr<ModelRunner>
+            else
+                sb.Append(AnsiCToCppTypes(typename));
+        }
+
+        public string OpaquePointerClassName { get; set; }
+
+        private string createXPtr(string typePtr, string varname = "", bool instance = false) // ModelRunner* becomes   XPtr<ModelRunner>
+        {
+            string res;
+            //if (OpaquePointers)
+                res = "OpaquePointer*";
+            //else
+            //    res = "XPtr<" + typePtr.Replace("*", "") + ">";
+            if (instance)
+            {
+                //if (OpaquePointers)
+                    res = res + "(new " + OpaquePointerClassName + "(" + varname + "))";
+                //else
+                //    res = res + "(" + varname + ")";
+            }
+            return res;
+        }
+
+        private string AnsiCToCppTypes(string rt)
+        {
+            return DefaultAnsiCToWrapperType(rt);
+        }
+
+        protected override void AppendReturnedValueDeclaration(StringBuilder sb)
+        {
+            // TODO: refactor - minor duplicate
+            sb.Append("auto "); sb.Append(ReturnedValueVarname);
+            sb.Append(" "); sb.Append(AssignmentSymbol); sb.Append(" ");
+        }
+
+        // TODO: refactor - minor duplicate
+        protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
+        {
+            if (returnsVal)
+            {
+                sb.Append("    auto x = " + CppWrap(funcDef.TypeName, ReturnedValueVarname) + StatementSep + NewLineString);
+                if (funcDef.TypeName == "char*")
+                    sb.Append("    DeleteAnsiString(" + ReturnedValueVarname + ");" + NewLineString);
+                sb.Append("    return x;");
+            }
+        }
+
+        private string CppWrap(string typename, string varname)
+        {
+            //return string.Format("TodoCppWrap({0}, {1})", typename, varname);
+            if (IsKnownType(typename))
+                return WrapAsCppType(typename, varname);
+            else if (IsPointer(typename))
+                return (createXPtr(typename, varname, true));
+            else
+                return WrapAsCppType(typename, varname);
+        }
+
+        private string WrapAsCppType(string typename, string varname)
+        {
+            if (typename == "double" ||
+                typename == "int" ||
+                typename == "bool")
+                return "some::wrap(" + varname + ")";
+            return AnsiCToCppTypes(typename) + "(" + varname + ")";
+        }
+
+        public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
+        {
+            CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
+            {
+                IsMatchFunc = StringHelper.ReturnsCharPP,
+                ApiArgToRcpp = ApiArgToRcpp,
+                ApiCallArgument = ApiCallArgument,
+                FunctionNamePostfix = this.FunctionNamePostfix,
+                Template = @"
+std::vector<std::string> %WRAPFUNCTION%(%WRAPARGS%)
+{
+	int size; 
+	char** names = %FUNCTION%(%ARGS% &size);
+	return toVectorCleanup(names, size);
+}
+"
+            };
+
+            return cw;
+        }
+
     }
 
-    public class CustomFunctionWrapperImpl : CustomFunctionWrapper
-    {
-
-        public CustomFunctionWrapperImpl()
-        {
-        }
-
-        public string Template;
-        public string argstvar = "%ARGS%";
-        public string wrapargstvar = "%WRAPARGS%";
-        public string functvar = "%FUNCTION%";
-        public string wrapfunctvar = "%WRAPFUNCTION%";
-        public string transargtvar = "%TRANSARGS%";
-        
-
-        public string FunctionNamePostfix = "";
-        public string CalledFunctionNamePostfix = "";
-        
-
-        public string CreateWrapper(string funDef)
-        {
-            string funcName = StringHelper.GetFuncName(funDef);
-            string wrapFuncName = funcName + this.FunctionNamePostfix;
-            string calledfuncName = funcName + this.CalledFunctionNamePostfix;
-            return Template
-                .Replace(wrapargstvar, WrapArgsDecl(funDef, 0, 0))
-                .Replace(argstvar, FuncCallArgs(funDef, 0, 0))
-                .Replace(wrapfunctvar, wrapFuncName)
-                .Replace(functvar, calledfuncName)
-                .Replace(transargtvar, TransientArgs(funDef, 0, 0));
-        }
-
-        public bool IsMatch(string funDef)
-        {
-            if (IsMatchFunc == null) return false;
-            return IsMatchFunc(funDef);
-        }
-
-        public Func<string, bool> IsMatchFunc = null;
-
-        // Below are more tricky ones, not yet fully fleshed out support.
-
-        private string WrapArgsDecl(string funDef, int start, int offsetLength)
-        {
-            if (ApiArgToRcpp == null) return string.Empty;
-            return ProcessFunctionArguments(funDef, start, offsetLength, ApiArgToRcpp);
-        }
-
-        public Action<StringBuilder, TypeAndName> ApiArgToRcpp = null;
-        public Action<StringBuilder, TypeAndName> ApiCallArgument = null;
-        public Action<StringBuilder, TypeAndName> TransientArgsCreation = null;
-        
-        private string TransientArgs(string funDef, int start, int offsetLength)
-        {
-            if (TransientArgsCreation == null) return string.Empty;
-            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCreation, appendSeparator: true, sep: StringHelper.NewLineString);
-            result += StringHelper.NewLineString;
-            return result;
-        }
-
-        private string FuncCallArgs(string funDef, int start, int offsetLength)
-        {
-            if (ApiCallArgument == null) return string.Empty;
-            return ProcessFunctionArguments(funDef, start, offsetLength, ApiCallArgument, appendSeparator: true);
-        }
-
-        private string ProcessFunctionArguments(string funDef, int start, int offsetLength, Action<StringBuilder, TypeAndName> argFunc, bool appendSeparator = false, string sep=", ")
-        {
-            StringBuilder sb = new StringBuilder();
-            var args = StringHelper.GetFunctionArguments(funDef);
-            int end = args.Length - 1 - offsetLength;
-            StringHelper.appendArgs(sb, argFunc, null, args, 0, end, sep);
-            if (appendSeparator && (end > start)) sb.Append(sep);
-            return sb.ToString();
-        }
-    }
 }
