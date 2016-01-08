@@ -1109,20 +1109,20 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
 
             SetTypeMap("void", "void");
             SetTypeMap("int", "int");
-            SetTypeMap("int*", "int*");
-            //SetTypeMap("char**", "CharacterVector");
+            //SetTypeMap("int*", "int*");
+            SetTypeMap("char**", "std::vector<std::string>&");
             SetTypeMap("char*", "std::string");
             SetTypeMap("char", "std::string");
             SetTypeMap("double", "double");
-            SetTypeMap("double*", "double*");
-            SetTypeMap("double**", "double**");
+            SetTypeMap("double*", "const std::vector<double>&");
+            SetTypeMap("double**", "const std::vector<std::vector<double>>&");
             SetTypeMap("bool", "bool");
             SetTypeMap("const char", "const char");
             SetTypeMap("const int", "const int");
             SetTypeMap("const double", "const double");
             SetTypeMap("const char*", "const string");
-            SetTypeMap("const int*", "const vector<int>");
-            SetTypeMap("const double*", "const vector<double>");
+            SetTypeMap("const int*", "const vector<int>&");
+            SetTypeMap("const double*", "const vector<double>&");
 
             OpaquePointerClassName = "OpaquePointer";
             PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
@@ -1209,24 +1209,20 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             if (IsKnownType(typename))
                 sb.Append(AnsiCToCppTypes(typename));
             else if (IsPointer(typename))
-                sb.Append(createXPtr(typename)); // XPtr<ModelRunner>
+                sb.Append(AsOpaquePtr(typename)); // XPtr<ModelRunner>
             else
                 sb.Append(AnsiCToCppTypes(typename));
         }
 
         public string OpaquePointerClassName { get; set; }
 
-        private string createXPtr(string typePtr, string varname = "", bool instance = false) // ModelRunner* becomes   XPtr<ModelRunner>
+        private string AsOpaquePtr(string typePtr, string varname = "", bool instance = false) // ModelRunner* becomes   XPtr<ModelRunner>
         {
-            string res;
-            //if (OpaquePointers)
-                res = "OpaquePointer*";
-            //else
-            //    res = "XPtr<" + typePtr.Replace("*", "") + ">";
+            string res = OpaquePointerClassName + "*";
             if (instance)
             {
                 //if (OpaquePointers)
-                    res = res + "(new " + OpaquePointerClassName + "(" + varname + "))";
+                    res = "new " + OpaquePointerClassName + "(" + varname + ")";
                 //else
                 //    res = res + "(" + varname + ")";
             }
@@ -1263,7 +1259,7 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             if (IsKnownType(typename))
                 return WrapAsCppType(typename, varname);
             else if (IsPointer(typename))
-                return (createXPtr(typename, varname, true));
+                return (AsOpaquePtr(typename, varname, true));
             else
                 return WrapAsCppType(typename, varname);
         }
@@ -1273,7 +1269,7 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             if (typename == "double" ||
                 typename == "int" ||
                 typename == "bool")
-                return "some::wrap(" + varname + ")";
+                return varname;
             return AnsiCToCppTypes(typename) + "(" + varname + ")";
         }
 
