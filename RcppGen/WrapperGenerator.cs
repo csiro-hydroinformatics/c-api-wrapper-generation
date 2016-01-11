@@ -355,7 +355,7 @@ namespace Rcpp.CodeGen
     /// </summary>
     public interface ICustomFunctionWrapper
     {
-        string CreateWrapper(string funcDef);
+        string CreateWrapper(string funcDef, bool declarationOnly);
         bool IsMatch(string funcDef);
     }
 
@@ -365,7 +365,10 @@ namespace Rcpp.CodeGen
     /// </summary>
     public class CustomFunctionWrapperImpl : ICustomFunctionWrapper
     {
-        public CustomFunctionWrapperImpl() { }
+        public CustomFunctionWrapperImpl()
+        {
+            StatementSep = ";";
+        }
 
         public string Template;
         public string argstvar = "%ARGS%";
@@ -378,17 +381,31 @@ namespace Rcpp.CodeGen
         public string FunctionNamePostfix = "";
         public string CalledFunctionNamePostfix = "";
         
-        public string CreateWrapper(string funDef)
+        public string CreateWrapper(string funDef, bool declarationOnly)
         {
             string funcName = StringHelper.GetFuncName(funDef);
             string wrapFuncName = funcName + this.FunctionNamePostfix;
             string calledfuncName = funcName + this.CalledFunctionNamePostfix;
-            return Template
+            var fullResult = Template
                 .Replace(wrapargstvar, WrapArgsDecl(funDef, 0, 0))
                 .Replace(argstvar, FuncCallArgs(funDef, 0, 0))
                 .Replace(wrapfunctvar, wrapFuncName)
                 .Replace(functvar, calledfuncName)
                 .Replace(transargtvar, TransientArgs(funDef, 0, 0));
+
+            if (declarationOnly)
+                return (getDeclaration(fullResult)); // HACK - brittle as assumes the template header is the only thing on the first line.
+            else
+                return fullResult;
+        }
+
+        public string StatementSep { get; set; }
+
+        private string getDeclaration(string fullResult)
+        {
+            string[] newLines = new string[] { Environment.NewLine, "\n" };
+            var lines = fullResult.Split( newLines, StringSplitOptions.RemoveEmptyEntries);
+            return lines[0] + StatementSep;
         }
 
         public bool IsMatch(string funDef)
@@ -457,6 +474,8 @@ namespace Rcpp.CodeGen
         public string[] PointersEndsWithAny { get; set; }
 
         public string NewLineString { get; set; }
+
+        public bool DeclarationOnly { get; set; }
 
         public string ConvertLine(string line)
         {
@@ -541,7 +560,7 @@ namespace Rcpp.CodeGen
             foreach (var c in customWrappers)
             {
                 if (c.IsMatch(line))
-                    return c.CreateWrapper(line);
+                    return c.CreateWrapper(line, DeclarationOnly);
             }
             return line;
         }
@@ -954,8 +973,6 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             };
         }
 
-        public bool DeclarationOnly { get; set; }
-
         public bool OpaquePointers { get; set; }
 
         public string OpaquePointerClassName { get; set; }
@@ -1161,8 +1178,6 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             }
 
         }
-
-        public bool DeclarationOnly { get; set; }
 
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
         {
