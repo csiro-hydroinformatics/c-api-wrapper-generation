@@ -27,9 +27,9 @@ namespace ApiWrapperGenerator
             SetTypeMap("const char", "const char");
             SetTypeMap("const int", "const int");
             SetTypeMap("const double", "const double");
-            SetTypeMap("const char*", "const string");
-            SetTypeMap("const int*", "const vector<int>&");
-            SetTypeMap("const double*", "const vector<double>&");
+            SetTypeMap("const char*", "const std::string");
+            SetTypeMap("const int*", "const std::vector<int>&");
+            SetTypeMap("const double*", "const std::vector<double>&");
 
             OpaquePointerClassName = "OpaquePointer";
             PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
@@ -123,7 +123,7 @@ namespace ApiWrapperGenerator
 
         private string AsOpaquePtr(string typePtr, string varname = "", bool instance = false) // ModelRunner* becomes   XPtr<ModelRunner>
         {
-            string res = OpaquePointerClassName + "*";
+            string res = OpaquePointerClassName + CPtr;
             if (instance)
             {
                 //if (OpaquePointers)

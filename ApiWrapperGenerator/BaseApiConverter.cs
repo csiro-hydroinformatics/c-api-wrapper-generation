@@ -14,11 +14,13 @@ namespace ApiWrapperGenerator
             FunctionBodyCloseDelimiter = NewLineString + "}" + NewLineString;
             StatementSep = ";";
             ApiCallPostfix = string.Empty;
-            PointersEndsWithAny = new string[] { "*", "_PTR" };
+            PointersEndsWithAny = new string[] { CPtr, "_PTR" };
             CallGetMethod = "->Get()";
             CastToOpaquePtrPtr = "(void**)";
             Indentation = "    ";
         }
+
+        public const string CPtr = "*";
 
         public string Indentation { get; set; }
 
@@ -91,7 +93,7 @@ namespace ApiWrapperGenerator
             string t = typename.Trim();
             foreach (var ptrTermination in PointersEndsWithAny)
             {
-                if (t.EndsWith(ptrTermination + "*"))
+                if (t.EndsWith(ptrTermination + CPtr))
                     return true;
             }
             return false;

@@ -56,7 +56,7 @@ namespace ApiWrapperGenerator
         {
             // Make all pointers types without blanks
             var rexpPtr = new Regex(" *\\*");
-            s = rexpPtr.Replace(s, "*");
+            s = rexpPtr.Replace(s, BaseApiConverter.CPtr);
             return s;
         }
 

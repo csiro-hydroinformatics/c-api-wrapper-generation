@@ -188,7 +188,7 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
             if (OpaquePointers)
                 res = "XPtr<" + OpaquePointerClassName + ">";
             else
-                res = "XPtr<" + typePtr.Replace("*", "") + ">";
+                res = "XPtr<" + typePtr.Replace(CPtr, "") + ">";
             if (instance)
             {
                 if (OpaquePointers)
