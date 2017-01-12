@@ -4,20 +4,27 @@ using System.Text.RegularExpressions;
 
 namespace ApiWrapperGenerator
 {
-    public class HeaderFilter
+    public class CodeFileFilter
     {
-        public HeaderFilter()
+        protected CodeFileFilter()
         {
-            ContainsAny = new string[] { "SWIFT_API" };
-            ToRemove = new string[] { "SWIFT_API" };
-            ContainsNone = new string[] { "#define" };
-            NotStartsWith = new string[] { "//" };
         }
 
         public string[] Filter(string inputFile)
         {
             string input = File.ReadAllText(inputFile);
-            return FindMatchingLines(input);
+            return FilterInput(input);
+        }
+
+        public string[] FilterInput(string input)
+        {
+            var filteredInput = OnLoadingRawInputFile(input);
+            return FindMatchingLines(filteredInput);
+        }
+
+        protected virtual string OnLoadingRawInputFile(string rawInput)
+        {
+            return rawInput;
         }
 
         public string[] FindMatchingLines(string input)
@@ -42,7 +49,7 @@ namespace ApiWrapperGenerator
             return output.ToArray();
         }
 
-        private string prepareInLine(string line)
+        protected string prepareInLine(string line)
         {
             string s = line.Replace("\t", " ");
             s = s.Trim();
@@ -52,7 +59,7 @@ namespace ApiWrapperGenerator
             return s;
         }
 
-        private static string preprocessPointers(string s)
+        protected static string preprocessPointers(string s)
         {
             // Make all pointers types without blanks
             var rexpPtr = new Regex(" *\\*");
@@ -60,7 +67,7 @@ namespace ApiWrapperGenerator
             return s;
         }
 
-        private string removeToRemove(string s)
+        protected string removeToRemove(string s)
         {
             foreach (var r in ToRemove)
                 s = s.Replace(r, "");
@@ -85,7 +92,7 @@ namespace ApiWrapperGenerator
             return match;
         }
 
-        private bool StartsWithExcluded(string line)
+        protected bool StartsWithExcluded(string line)
         {
             foreach (string p in NotStartsWith)
                 if (line.StartsWith(p)) return true;
@@ -100,5 +107,36 @@ namespace ApiWrapperGenerator
 
         public string[] ContainsNone { get; set; }
 
+    }
+
+    public class HeaderFilter : CodeFileFilter
+    {
+        public HeaderFilter()
+        {
+            ContainsAny = new string[] { "SWIFT_API" };
+            ToRemove = new string[] { "SWIFT_API" };
+            ContainsNone = new string[] { "#define" };
+            NotStartsWith = new string[] { "//" };
+        }
+
+    }
+
+    public class RcppExportedCppFunctions : CodeFileFilter
+    {
+        public RcppExportedCppFunctions()
+        {
+            ContainsAny = new string[] { "[[Rcpp::export]] " };
+            ToRemove = new string[] { "[[Rcpp::export]] " };
+            ContainsNone = new string[] { "#define" };
+            NotStartsWith = new string[] { "//" };
+        }
+
+        protected override string OnLoadingRawInputFile(string rawInput)
+        {
+            var x = rawInput.Replace("// [[Rcpp::export]]\n\r", "[[Rcpp::export]] ");
+            x = x.Replace("// [[Rcpp::export]]\r\n", "[[Rcpp::export]] ");
+            x = x.Replace("// [[Rcpp::export]]\n", "[[Rcpp::export]] ");
+            return x;
+        }
     }
 }

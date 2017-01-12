@@ -8,5 +8,6 @@ namespace ApiWrapperGenerator
     {
         string ConvertLine(string line);
         string GetPreamble();
+        string GetPostamble();
     }
 }

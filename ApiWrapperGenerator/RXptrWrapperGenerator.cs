@@ -13,6 +13,12 @@ namespace ApiWrapperGenerator
         {
             AssignmentSymbol = "<-";
             ReturnedValueVarname = "result";
+            Indentation = "  ";
+            RoxygenStartMarker = "#'";
+            RoxyExportFunctions = true;
+            RoxygenParameterTag = "@param";
+            RoxygenExportTag = "@export";
+            StatementSep = "";
 
             ClearCustomWrappers();
             CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
@@ -21,20 +27,26 @@ namespace ApiWrapperGenerator
             GenerateRoxygenDoc = true;
             RoxygenDocPostamble = string.Empty;
 
+            SetTransientArgConversion(".*", "",
+                "C_ARGNAME <- getSwiftXptr(RCPP_ARGNAME)" + StatementSep, //    x <- getSwiftXptr(x);
+                ""); // no cleanup
+
         }
 
         public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
         {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {
+                StatementSep = this.StatementSep,
                 IsMatchFunc = StringHelper.ReturnsCharPP,
-                ApiArgToRcpp = ApiArgToRfunctionArgument,
+                ApiArgToWrappingLang = ApiArgToRfunctionArgument,
                 ApiCallArgument = this.ApiCallArgument,
-                TransientArgsCreation = this.TransientArgCreation,
+                TransientArgsCreation = this.TransientArgsCreation,
                 FunctionNamePostfix = this.FunctionNamePostfix,
                 CalledFunctionNamePostfix = this.ApiCallPostfix,
+                ApiSignatureToDocString = this.ApiSignatureToBasicRoxygenString,
                 Template = @"
-#' docco
+%WRAPFUNCTIONDOCSTRING%
 %WRAPFUNCTION% <- function(%WRAPARGS%)
 {
     %TRANSARGS%
@@ -77,22 +89,13 @@ namespace ApiWrapperGenerator
             var sb = new StringBuilder();
             if (GenerateRoxygenDoc)
             {
-                if (!createWrapFuncRoxydoc(sb, funcAndArgs))
+                if (!CreateWrapFuncRoxydoc(sb, funcAndArgs))
                     return line;
             }
             if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
             string result = "";
             result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
             return result;
-        }
-
-        private void TransientArgCreation(StringBuilder sb, TypeAndName typeAndName)
-        {
-            //    x <- getSwiftXptr(x);
-            sb.Append(typeAndName.VarName);
-            sb.Append(" <- getSwiftXptr(");
-            sb.Append(typeAndName.VarName);
-            sb.Append(");");
         }
 
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
@@ -111,22 +114,50 @@ namespace ApiWrapperGenerator
 
         public string RoxygenDocPostamble { get; set; }
 
-        private bool createWrapFuncRoxydoc(StringBuilder sb, FuncAndArgs funcAndArgs)
+        public string RoxygenExportTag { get; set; }
+        public string RoxygenParameterTag { get; set; }
+        public string RoxygenStartMarker { get; set; }
+        public bool RoxyExportFunctions { get; set; }
+
+        public void AddRoxyLine (StringBuilder sb, string lineTxt = "")
+        {
+            AddLine(sb, RoxygenStartMarker + lineTxt);
+        }
+
+        public bool CreateWrapFuncRoxydoc(StringBuilder sb, FuncAndArgs funcAndArgs, bool paramDocs = true)
         {
             var funcDecl = GetTypeAndName(funcAndArgs.Function);
             string funcName = funcDecl.VarName + FunctionNamePostfix;
-            sb.AppendLine("#' " + funcName);
-            sb.AppendLine("#' ");
-            sb.AppendLine("#' " + funcName + " Wrapper function for " + funcDecl.VarName);
-            sb.AppendLine("#' ");
-            var funcArgs = GetFuncArguments(funcAndArgs);
-            for (int i = 0; i < funcArgs.Length; i++)
+            AddRoxyLine(sb, " " + funcName);
+            AddRoxyLine(sb);
+            AddRoxyLine(sb, " " + funcName + " Wrapper function for " + funcDecl.VarName);
+            AddRoxyLine(sb);
+            if (paramDocs)
             {
-                var v = GetTypeAndName(funcArgs[i]);
-                sb.Append("#' @param " + v.VarName + " R type equivalent for C++ type " + v.TypeName + NewLineString);
+                var funcArgs = GetFuncArguments(funcAndArgs);
+                for (int i = 0; i < funcArgs.Length; i++)
+                {
+                    var v = GetTypeAndName(funcArgs[i]);
+                    AddRoxyLine(sb, " " + RoxygenParameterTag + " " + v.VarName + " R type equivalent for C++ type " + v.TypeName);
+                }
             }
-            sb.AppendLine(RoxygenDocPostamble);
+            if(RoxyExportFunctions)
+                AddRoxyLine( sb, " " + RoxygenExportTag);
             return true;
+        }
+
+        public string ApiSignatureToBasicRoxygenString(FuncAndArgs funcAndArgs)
+        {
+            StringBuilder sb = new StringBuilder();
+            CreateWrapFuncRoxydoc(sb, funcAndArgs, false);
+            return sb.ToString();
+        }
+
+        public string ApiSignatureToRoxygenString(FuncAndArgs funcAndArgs, bool paramDocs = true)
+        {
+            StringBuilder sb = new StringBuilder();
+            CreateWrapFuncRoxydoc(sb, funcAndArgs, paramDocs);
+            return sb.ToString();
         }
 
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
@@ -134,7 +165,9 @@ namespace ApiWrapperGenerator
             var funcDecl = GetTypeAndName(funcAndArgs.Function);
             string funcDef = funcDecl.VarName + FunctionNamePostfix + " <- function";
             sb.Append(funcDef);
-            return AddFunctionArgs(sb, funcAndArgs, ApiArgToRfunctionArgument);
+            bool r = AddFunctionArgs(sb, funcAndArgs, ApiArgToRfunctionArgument);
+            sb.Append(' ');
+            return r;
         }
 
         private void ApiArgToRfunctionArgument(StringBuilder sb, TypeAndName typeAndName)
@@ -146,14 +179,8 @@ namespace ApiWrapperGenerator
         {
             if (returnsVal)
             {
-                sb.Append("    return(mkSwiftObjRef(" + ReturnedValueVarname + ",'" + funcDef.TypeName + "'))");
+                AddBodyLine(sb, "return(mkSwiftObjRef(" + ReturnedValueVarname + ", '" + funcDef.TypeName + "'))");
             }
-        }
-
-        protected override void AppendReturnedValueDeclaration(StringBuilder sb)
-        {
-            sb.Append(ReturnedValueVarname);
-            sb.Append(" "); sb.Append(AssignmentSymbol); sb.Append(" ");
         }
     }
 }

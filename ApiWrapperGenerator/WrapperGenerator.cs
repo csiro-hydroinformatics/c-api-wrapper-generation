@@ -11,14 +11,14 @@ namespace ApiWrapperGenerator
             this.converter = converter;
             this.filter = new HeaderFilter();
         }
-        public WrapperGenerator(IApiConverter converter, HeaderFilter filter)
+        public WrapperGenerator(IApiConverter converter, CodeFileFilter filter)
         {
             this.converter = converter;
             this.filter = filter;
         }
 
         IApiConverter converter;
-        HeaderFilter filter;
+        CodeFileFilter filter;
 
         public void CreateWrapperHeader(string inputFile, string outputFile)
         {
@@ -30,6 +30,7 @@ namespace ApiWrapperGenerator
             {
                 sb.Append(outputlines[i]);
             }
+            sb.Append(converter.GetPostamble());
             string output = sb.ToString();
             File.WriteAllText(outputFile, output);
         }

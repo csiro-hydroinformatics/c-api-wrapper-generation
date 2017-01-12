@@ -5,12 +5,6 @@ namespace ApiWrapperGenerator
     public class RcppGlueWrapperGenerator : BaseApiConverter, IApiConverter
     {
 
-        protected override void AppendReturnedValueDeclaration(StringBuilder sb)
-        {
-            sb.Append("auto "); sb.Append(ReturnedValueVarname);
-            sb.Append(" "); sb.Append(AssignmentSymbol); sb.Append(" ");
-        }
-
         public RcppGlueWrapperGenerator()
         {
             AssignmentSymbol = "=";
@@ -20,6 +14,7 @@ namespace ApiWrapperGenerator
             DeclarationOnly = false;
             AddRcppExport = true;
             NewLineString = "\n";
+            ReturnedValueDeclarationKeyword = "auto";
 
             SetTypeMap("void", "void");
             SetTypeMap("int", "IntegerVector");
@@ -51,7 +46,7 @@ namespace ApiWrapperGenerator
             return new CustomFunctionWrapperImpl()
             {
                 IsMatchFunc = StringHelper.ReturnsCharPP,
-                ApiArgToRcpp = ApiArgToRcpp,
+                ApiArgToWrappingLang = ApiArgToRcpp,
                 ApiCallArgument = ApiCallArgument,
                 FunctionNamePostfix = this.FunctionNamePostfix,
                 Template = @"
@@ -101,18 +96,19 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
             if (AddRcppExport)
-                sb.Append("// [[Rcpp::export]]" + NewLineString);
-            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp);
+                sb.Append(UniformIndentation + "// [[Rcpp::export]]" + NewLineString);
+            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp, FunctionNamePostfix);
         }
 
         protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
         {
             if (returnsVal)
             {
-                sb.Append("    auto x = " + RcppWrap(funcDef.TypeName, ReturnedValueVarname) + StatementSep + NewLineString);
+                string statement = "auto x = " + RcppWrap(funcDef.TypeName, ReturnedValueVarname);
+                AddBodyLine(sb, statement);
                 if (funcDef.TypeName == "char*")
-                    sb.Append("    DeleteAnsiString(" + ReturnedValueVarname + ");" + NewLineString);
-                sb.Append("    return x;");
+                    AddBodyLine(sb, "DeleteAnsiString(" + ReturnedValueVarname + ")");
+                AddBodyLine(sb, "return x");
             }
         }
 

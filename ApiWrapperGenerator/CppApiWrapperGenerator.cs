@@ -98,7 +98,7 @@ namespace ApiWrapperGenerator
 
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
-            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp);
+            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp, FunctionNamePostfix);
         }
 
         private void ApiArgToRcpp(StringBuilder sb, TypeAndName typeAndName)
@@ -139,13 +139,6 @@ namespace ApiWrapperGenerator
             return DefaultAnsiCToWrapperType(rt);
         }
 
-        protected override void AppendReturnedValueDeclaration(StringBuilder sb)
-        {
-            // TODO: refactor - minor duplicate
-            sb.Append("auto "); sb.Append(ReturnedValueVarname);
-            sb.Append(" "); sb.Append(AssignmentSymbol); sb.Append(" ");
-        }
-
         // TODO: refactor - minor duplicate
         protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
         {
@@ -183,7 +176,7 @@ namespace ApiWrapperGenerator
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {
                 IsMatchFunc = StringHelper.ReturnsCharPP,
-                ApiArgToRcpp = ApiArgToRcpp,
+                ApiArgToWrappingLang = ApiArgToRcpp,
                 ApiCallArgument = ApiCallArgument,
                 FunctionNamePostfix = this.FunctionNamePostfix,
                 Template = @"

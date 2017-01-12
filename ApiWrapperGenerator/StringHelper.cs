@@ -64,27 +64,48 @@ namespace ApiWrapperGenerator
             return (GetReturnedType(funDef) == "char**");
         }
 
-        public static bool appendArgs(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs, string[] args, int start, int end, string sep = ", ")
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sb"></param>
+        /// <param name="argFunc">A method that processes the information contained in the argument 'arg'</param>
+        /// <param name="transientArgs">A map from C API variable names to transient variables that are to be processed in lieu of 'arg'</param>
+        /// <param name="args">The C API function arguments to process</param>
+        /// <param name="start">start index of the arguments to process</param>
+        /// <param name="end">last index of the arguments to process</param>
+        /// <param name="sep"></param>
+        /// <returns></returns>
+        public static bool appendArgs(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs, string[] args, int start, int end, string sep = ", ")
         {
             string arg;
             for (int i = start; i < end; i++)
             {
                 arg = args[i];
-                if (!addArgument(sb, argFunc, transientArgs, arg)) return false;
+                int lenBfore = sb.Length;
+                if (!AddArgument(sb, argFunc, transientArgs, arg)) return false;
                 if (i < (end - 1))
-                    sb.Append(sep);
+                    if (lenBfore != sb.Length)
+                        sb.Append(sep);
             }
             return true;
         }
 
-        public static bool addArgument(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, string> transientArgs, string arg)
+        /// <summary>
+        /// Process a C API function argument according to a transformation
+        /// </summary>
+        /// <param name="sb">stringbuilder to append to</param>
+        /// <param name="argFunc">A method that processes the information contained in the argument 'arg'</param>
+        /// <param name="transientArgs">A map from C API variable names to transient variables that are to be processed in lieu of 'arg'</param>
+        /// <param name="arg">The API argument to process, e.g. a string such as "char** varNames"</param>
+        /// <returns></returns>
+        public static bool AddArgument(StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs, string arg)
         {
             var typeAndName = StringHelper.GetVariableDeclaration(arg);
             if (typeAndName.Unexpected) return false;
             string vname = typeAndName.VarName;
             if (transientArgs != null && transientArgs.ContainsKey(vname))
             {
-                sb.Append(transientArgs[vname]);
+                sb.Append(transientArgs[vname].LocalVarname);
                 return true;
             }
             return ParseTypeAndName(sb, arg, argFunc);

@@ -19,6 +19,12 @@ namespace ApiWrapperGenerator
             Arguments = funcAndArgs[1];
             if (funcAndArgs.Length > 2) { Unexpected = true; }
         }
+        public FuncAndArgs(FuncAndArgs src)
+        {
+            Function = src.Function;
+            Arguments = src.Arguments;
+            Unexpected = src.Unexpected;
+        }
         public string Function = string.Empty;
         public string Arguments = string.Empty;
         public bool Unexpected = false;
