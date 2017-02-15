@@ -64,6 +64,11 @@ namespace ApiWrapperGenerator
             return (GetReturnedType(funDef) == "char**");
         }
 
+        public static bool ReturnsDoublePtr(string funDef)
+        {
+            return (GetReturnedType(funDef) == "double*");
+        }
+        
         /// <summary>
         /// 
         /// </summary>

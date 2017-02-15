@@ -49,6 +49,15 @@ namespace ApiWrapperGenerator
                 ApiArgToWrappingLang = ApiArgToRcpp,
                 ApiCallArgument = ApiCallArgument,
                 FunctionNamePostfix = this.FunctionNamePostfix,
+                /**
+// [[Rcpp::export]]
+NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, IntegerVector size)
+{
+    auto result = GetAtDimOne(matrix->Get(), as<int>(index), &(size[0]));
+    auto x = NumericVector(result);
+    return x;
+}
+                 */
                 Template = @"
 // [[Rcpp::export]]
 CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
@@ -60,6 +69,32 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
 "
             };
         }
+
+        public CustomFunctionWrapperImpl ReturnsDoublePtrWrapper()
+        {
+            CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
+            {
+                IsMatchFunc = StringHelper.ReturnsDoublePtr,
+                ApiArgToWrappingLang = ApiArgToRcpp,
+                ApiCallArgument = ApiCallArgument,
+                TransientArgsCreation = TransientArgsCreation,
+                TransientArgsCleanup = TransientArgsCleanup,
+                FunctionNamePostfix = this.FunctionNamePostfix,
+
+                Template = @"
+// [[Rcpp::export]]
+NumericVector %WRAPFUNCTION%(%WRAPARGS%)
+{
+	int size; 
+    %TRANSARGS%    double* values = %FUNCTION%(%ARGS% &size);
+    %CLEANTRANSARGS%    return to_r_numeric_vector(values, size, true);
+}
+"
+            };
+
+            return cw;
+        }
+
 
         public bool OpaquePointers { get; set; }
 
