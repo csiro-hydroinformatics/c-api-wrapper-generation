@@ -43,12 +43,7 @@ namespace ApiWrapperGenerator
 
         public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
         {
-            return new CustomFunctionWrapperImpl()
-            {
-                IsMatchFunc = StringHelper.ReturnsCharPP,
-                ApiArgToWrappingLang = ApiArgToRcpp,
-                ApiCallArgument = ApiCallArgument,
-                FunctionNamePostfix = this.FunctionNamePostfix,
+            return ReturnsVectorWrapper(StringHelper.ReturnsCharPP, "char**", "CharacterVector", "to_r_character_vector");
                 /**
 // [[Rcpp::export]]
 NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, IntegerVector size)
@@ -58,23 +53,19 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
     return x;
 }
                  */
-                Template = @"
-// [[Rcpp::export]]
-CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
-{
-	int size; 
-	char** names = %FUNCTION%(%ARGS% &size);
-	return toVectorCleanup(names, size);
-}
-"
-            };
         }
 
         public CustomFunctionWrapperImpl ReturnsDoublePtrWrapper()
         {
+            return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr, "double*", "NumericVector", "to_r_numeric_vector");
+        }
+
+        private CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun, string apitype, 
+            string rcpptype, string convertingFunc)
+        {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {
-                IsMatchFunc = StringHelper.ReturnsDoublePtr,
+                IsMatchFunc = matchFun,
                 ApiArgToWrappingLang = ApiArgToRcpp,
                 ApiCallArgument = ApiCallArgument,
                 TransientArgsCreation = TransientArgsCreation,
@@ -83,11 +74,11 @@ CharacterVector %WRAPFUNCTION%(%WRAPARGS%)
 
                 Template = @"
 // [[Rcpp::export]]
-NumericVector %WRAPFUNCTION%(%WRAPARGS%)
+" + rcpptype + @" %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
-    %TRANSARGS%    double* values = %FUNCTION%(%ARGS% &size);
-    %CLEANTRANSARGS%    return to_r_numeric_vector(values, size, true);
+    %TRANSARGS%    " + apitype + @" values = %FUNCTION%(%ARGS% &size);
+    %CLEANTRANSARGS%    return " + convertingFunc + @"(values, size, true);
 }
 "
             };

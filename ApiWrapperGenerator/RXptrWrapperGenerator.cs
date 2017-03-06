@@ -35,10 +35,20 @@ namespace ApiWrapperGenerator
 
         public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
         {
+            return ReturnsVectorWrapper(StringHelper.ReturnsCharPP);
+        }
+
+        public CustomFunctionWrapperImpl ReturnsDoublePtrWrapper()
+        {
+            return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr);
+        }
+
+        private CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun)
+        {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {
                 StatementSep = this.StatementSep,
-                IsMatchFunc = StringHelper.ReturnsCharPP,
+                IsMatchFunc = matchFun,
                 ApiArgToWrappingLang = ApiArgToRfunctionArgument,
                 ApiCallArgument = this.ApiCallArgument,
                 TransientArgsCreation = this.TransientArgsCreation,
@@ -51,7 +61,7 @@ namespace ApiWrapperGenerator
 {
     %TRANSARGS%
     result <- %FUNCTION%(%WRAPARGS%);
-    return(mkSwiftObjRef(result,'char**'))
+    return(mkSwiftObjRef(result,'dummytype'))
 }
 "
             };
