@@ -43,7 +43,7 @@ namespace ApiWrapperGenerator
 
         public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
         {
-            return ReturnsVectorWrapper(StringHelper.ReturnsCharPP, "char**", "CharacterVector", "to_r_character_vector");
+            return ReturnsVectorWrapper(StringHelper.ReturnsCharPP, "char**", "CharacterVector", "to_custom_character_vector<CharacterVector>");
                 /**
 // [[Rcpp::export]]
 NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, IntegerVector size)
@@ -57,7 +57,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
 
         public CustomFunctionWrapperImpl ReturnsDoublePtrWrapper()
         {
-            return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr, "double*", "NumericVector", "to_r_numeric_vector");
+            return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr, "double*", "NumericVector", "to_custom_numeric_vector<NumericVector>");
         }
 
         private CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun, string apitype, 
