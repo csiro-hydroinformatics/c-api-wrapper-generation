@@ -61,6 +61,9 @@ namespace ApiWrapperGenerator
 
         public string StatementSep { get; set; }
 
+        public string CreateXptrObjRefFunction { get; set; }
+        public string GetXptrFromObjRefFunction { get; set; }
+
         public string FunctionNamePostfix { get; set; }
 
         public string[] PointersEndsWithAny { get; set; }

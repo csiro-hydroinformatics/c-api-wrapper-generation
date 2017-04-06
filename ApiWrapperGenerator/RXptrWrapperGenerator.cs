@@ -19,6 +19,8 @@ namespace ApiWrapperGenerator
             RoxygenParameterTag = "@param";
             RoxygenExportTag = "@export";
             StatementSep = "";
+            CreateXptrObjRefFunction = "cinterop::mkExternalObjRef";
+            GetXptrFromObjRefFunction = "cinterop::getExternalXptr";
 
             ClearCustomWrappers();
             CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
@@ -28,7 +30,7 @@ namespace ApiWrapperGenerator
             RoxygenDocPostamble = string.Empty;
 
             SetTransientArgConversion(".*", "",
-                "C_ARGNAME <- getSwiftXptr(RCPP_ARGNAME)" + StatementSep, //    x <- getSwiftXptr(x);
+                "C_ARGNAME <- " + GetXptrFromObjRefFunction + @"(RCPP_ARGNAME)" + StatementSep, //    x <- getSwiftXptr(x);
                 ""); // no cleanup
 
         }
@@ -61,7 +63,7 @@ namespace ApiWrapperGenerator
 {
     %TRANSARGS%
     result <- %FUNCTION%(%WRAPARGS%);
-    return(mkSwiftObjRef(result,'dummytype'))
+    return("+ CreateXptrObjRefFunction + @"(result,'dummytype'))
 }
 "
             };
@@ -189,7 +191,7 @@ namespace ApiWrapperGenerator
         {
             if (returnsVal)
             {
-                AddBodyLine(sb, "return(mkSwiftObjRef(" + ReturnedValueVarname + ", '" + funcDef.TypeName + "'))");
+                AddBodyLine(sb, "return("+ CreateXptrObjRefFunction + @"(" + ReturnedValueVarname + ", '" + funcDef.TypeName + "'))");
             }
         }
     }
