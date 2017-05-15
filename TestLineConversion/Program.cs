@@ -12,9 +12,22 @@ namespace TestLineConversion
     {
         static void Main(string[] args)
         {
+            if(args.Length < 2)
+            {
+                Console.Error.WriteLine("Usage:");
+                Console.Error.WriteLine("TestLineConversion \"SWIFTAPI void blah();\" wrappertype");
+                return;
+            }
+            string gen = args[1];
             //TestStrings();
-
-            TestWrpGen(args);
+            if(gen == "cs")
+                TestCsWrpGen(args);
+            else if (gen == "m")
+                TestMatlabWrpGen(args);
+            else if (gen == "r")
+                TestRWrpGen(args);
+            else
+                Console.Error.WriteLine("Unknown option " + gen);
         }
 
         private static IntPtr TestStrings()
@@ -49,16 +62,35 @@ namespace TestLineConversion
             return charpp;
         }
 
-        private static void TestWrpGen(string[] args)
+        private static void TestCsWrpGen(string[] args)
+        {
+            var gen = new CsharpApiWrapperGenerator();
+            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
+            ProcessTestLine(args, gen);
+        }
+
+        private static void ProcessTestLine(string[] args, IApiConverter gen)
         {
             HeaderFilter filter = createFilter();
             string apiLine = args[0];
-            var gen = new CsharpApiWrapperGenerator();
-            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
             apiLine = filter.FilterInput(apiLine)[0];
             var w = new WrapperGenerator(gen, filter);
             var result = w.Convert(new string[] { apiLine });
             Console.WriteLine(result[0]);
+        }
+
+        private static void TestMatlabWrpGen(string[] args)
+        {
+            var gen = new MatlabApiWrapperGenerator();
+            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
+            ProcessTestLine(args, gen);
+        }
+
+        private static void TestRWrpGen(string[] args)
+        {
+            var gen = new RXptrWrapperGenerator();
+            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
+            ProcessTestLine(args, gen);
         }
 
         private static HeaderFilter createFilter()

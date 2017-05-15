@@ -173,6 +173,14 @@ namespace ApiWrapperGenerator
             customWrappers.Add(cw);
         }
 
+        /// <summary> Adds the arguments of a function in the generated code </summary>
+        ///
+        /// <param name="sb">            The sb.</param>
+        /// <param name="funcAndArgs">   The function and arguments.</param>
+        /// <param name="argFunc">       a function that generates the parameter name and type in the target language, based on the TypeAndName info from the source language</param>
+        /// <param name="transientArgs"> (Optional) The transient arguments.</param>
+        ///
+        /// <returns> True if it succeeds, false if it fails.</returns>
         protected static bool AddFunctionArgs(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs = null)
         {
             sb.Append("(");

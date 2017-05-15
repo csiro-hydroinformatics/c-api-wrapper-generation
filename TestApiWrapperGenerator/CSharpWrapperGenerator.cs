@@ -191,7 +191,6 @@ namespace TestApiWrapperGenerator
                 Assert.Equal(expectedLines[i], lines[i]);
         }
 
-
         public static string[] SplitToLines(string s)
         {
             return SplitToLines(new string[] { s });

@@ -59,6 +59,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MatlabWrapperGenerator.cs" />
     <Compile Include="CSharpWrapperGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RcppWrapperGenerator.cs" />
