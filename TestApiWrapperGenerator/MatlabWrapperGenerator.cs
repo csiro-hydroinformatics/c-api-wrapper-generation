@@ -19,8 +19,6 @@ namespace TestApiWrapperGenerator
 
             HeaderFilter filter = new HeaderFilter();
             var gen = new MatlabApiWrapperGenerator();
-            gen.UniformIndentationCount = 0;
-            gen.Indentation = "    ";
             var filtered = filter.FilterInput(apiLine);
             var w = new WrapperGenerator(gen, filter);
             var result = w.Convert(filtered);
@@ -28,7 +26,7 @@ namespace TestApiWrapperGenerator
             var s = result[0].Trim('\n');
 
             string[] expectedLines = {
-"function f = ApiFun_m(simulation)",
+"function f = ApiFun(simulation)",
 //"% ApiFun_m",
 //"%",
 //"% INPUT simulation [libpointer] A SWIFT simulation object (i.e. a model runner)",

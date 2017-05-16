@@ -19,6 +19,7 @@ namespace ApiWrapperGenerator
             CastToOpaquePtrPtr = "(void**)";
             Indentation = "    ";
             UniformIndentationCount = 0;
+            ApiCallOpenParenthesis = true; // a kludge switch to cater for matlab's calllib
         }
 
         public const string CPtr = "*";
@@ -181,9 +182,10 @@ namespace ApiWrapperGenerator
         /// <param name="transientArgs"> (Optional) The transient arguments.</param>
         ///
         /// <returns> True if it succeeds, false if it fails.</returns>
-        protected static bool AddFunctionArgs(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs = null)
+        protected static bool AddFunctionArgs(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs = null, bool openParenthesis=true)
         {
-            sb.Append("(");
+            if(openParenthesis) // Kludge for e.g. matlab calllib('mylib','mufunc',
+                sb.Append("(");
             string[] args = GetFuncArguments(funcAndArgs);
             if (args.Length > 0)
             {
@@ -408,13 +410,15 @@ namespace ApiWrapperGenerator
             }
         }
 
+        public bool ApiCallOpenParenthesis { get; set; }
+
         protected bool CreateApiFunctionCall(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs, TypeAndName funcDef, bool returnsVal)
         {
             sb.Append(UniformIndentation);
             sb.Append(Indentation);
             if (returnsVal) AppendReturnedValueDeclaration(sb);
             CreateApiFunctionCallFunction(sb, funcDef);
-            if (!AddFunctionArgs(sb, funcAndArgs, argFunc, transientArgs)) return false;
+            if (!AddFunctionArgs(sb, funcAndArgs, argFunc, transientArgs, ApiCallOpenParenthesis)) return false;
             sb.Append(StatementSep);
             sb.Append(NewLineString);
             return true;

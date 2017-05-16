@@ -8,7 +8,13 @@ namespace ApiWrapperGenerator
     {
         public MatlabApiWrapperGenerator()
         {
-            FunctionNamePostfix = "_m";            
+            ApiCallOpenParenthesis = false; // a kludge switch to cater for matlab's calllib
+            FunctionNamePostfix = "";
+            NativeLibraryNameNoext = "mylibname";
+
+            UniformIndentationCount = 0;
+            Indentation = "    ";
+
             AssignmentSymbol = "=";
             ReturnedValueVarname = "result";
             Indentation = "  ";
@@ -29,7 +35,80 @@ namespace ApiWrapperGenerator
             GenerateFunctionDoc = false;
             //RoxygenDocPostamble = string.Empty;
 
-            SetTransientArgConversion(".*", "",
+            SetTransientArgConversion(
+                "char**",
+                "_charpp",
+            // pNodeIds = libpointer('stringPtrPtr', nodeIds);
+            "C_ARGNAME = libpointer('stringPtrPtr', RCPP_ARGNAME);",
+            // clear pNodeIds;
+                "clear(C_ARGNAME);");
+
+            // All structs are marshalled in a similar manner:
+            string createPtr =
+                // IntPtr geom_struct = InteropHelper.StructureToPtr(geom);
+                // IntPtr C_ARGNAME = InteropHelper.StructureToPtr(RCPP_ARGNAME);
+                "IntPtr C_ARGNAME = InteropHelper.StructureToPtr(RCPP_ARGNAME);";
+            string freePtr =
+                // InteropHelper.FreeNativeStruct(geom_struct, ref geom, true);
+                // InteropHelper.FreeNativeStruct(C_ARGNAME, ref RCPP_ARGNAME, true);
+                "InteropHelper.FreeNativeStruct(C_ARGNAME, ref RCPP_ARGNAME, true);";
+
+            //SetTypeMap("TS_GEOMETRY_PTR", "ref MarshaledTimeSeriesGeometry");
+            SetTransientArgConversion(
+                "TS_GEOMETRY_PTR",
+                "_struct",
+                // e.g. matlab\native\estimateDualPassParameters.m
+                //tsGeo = createTsGeometry(dts, timeStepInSeconds, lenData);
+                //pTsGeo = libstruct('MarshaledTsGeometry', tsGeo);
+                "C_ARGNAME = createTsGeometry(RCPP_ARGNAME);",
+                ""); // No cleanup? really?
+
+            SetTypeMap("DATE_TIME_INFO_PTR", "ref MarshaledDateTime");
+            SetTransientArgConversion(
+                "DATE_TIME_INFO_PTR",
+                "_struct",
+                // estimationEndDt = createDateTimeFrom(estimationEnd);    
+                "C_ARGNAME = createDateTimeFrom(RCPP_ARGNAME);",
+                ""); // No cleanup? really?
+
+            string createArrayStructPtr =
+                "IntPtr C_ARGNAME = InteropHelper.ArrayOfStructureToPtr(RCPP_ARGNAME);";
+            string freeArrayStructPtr =
+                "InteropHelper.FreeNativeArrayOfStruct(C_ARGNAME, ref RCPP_ARGNAME, false);";
+
+            //#define NODE_INFO_PTR  NodeInfoTxt*
+            SetTransientArgConversion(
+                "NODE_INFO_PTR",
+                "_struct", createArrayStructPtr, freeArrayStructPtr);
+
+            //#define LINK_INFO_PTR  LinkInfoTxt*
+            SetTransientArgConversion(
+                "LINK_INFO_PTR",
+                "_struct", createArrayStructPtr, freeArrayStructPtr);
+
+            SetTransientArgConversion("double**", "_doublepp",
+                "IntPtr C_ARGNAME = InteropHelper.BiArrayDoubleToNative(RCPP_ARGNAME);",
+                "InteropHelper.FreeBiArrayDouble(C_ARGNAME, RCPP_ARGNAME.Length);");
+
+            SetTransientArgConversion("double*", "_doublep",
+                // pAreasKm2 = libpointer('doublePtr', areasKm2);
+                "C_ARGNAME = libpointer('doublePtr', RCPP_ARGNAME);",
+                "clear(C_ARGNAME);");
+
+            //SWIFT_API COMPOSITE_PARAMETERIZER_PTR AggregateParameterizers(const char* strategy, ARRAY_OF_PARAMETERIZERS_PTR parameterizers, int numParameterizers);
+            //         INativeParameterizer AggregateParameterizers_cs(string strategy, INativeParameterizer[] parameterizers, int numParameterizers)
+            SetTransientArgConversion(
+                "ARRAY_OF_PARAMETERIZERS_PTR",
+                "_array_ptr",
+                //IntPtr parameterizers_array_ptr = InteropHelper.CreateNativeArray(Array.ConvertAll(parameterizers, p => p.GetHandle()));
+                "IntPtr C_ARGNAME = InteropHelper.CreateNativeArray(Array.ConvertAll(RCPP_ARGNAME, p => p.GetHandle()));",
+                "InteropHelper.DeleteNativeArray(C_ARGNAME);");
+
+            SetTransientArgConversion(".*_PTR", "",
+                "C_ARGNAME = " + GetXptrFromObjRefFunction + @"(RCPP_ARGNAME)" + StatementSep, //    x_ptr = getSwiftXptr(x);
+                ""); // no cleanup
+
+            SetTransientArgConversion(".*\\**", "",
                 "C_ARGNAME = " + GetXptrFromObjRefFunction + @"(RCPP_ARGNAME)" + StatementSep, //    x_ptr = getSwiftXptr(x);
                 ""); // no cleanup
 
@@ -110,15 +189,14 @@ namespace ApiWrapperGenerator
             return result;
         }
 
+        protected override void CreateApiFunctionCallFunction(StringBuilder sb, TypeAndName funcDef)
+        {
+            string matlabCallsLib = "calllib('" + NativeLibraryNameNoext + "', '" + funcDef.VarName + "', ";
+            sb.Append(matlabCallsLib);
+        }
+
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
         {
-            //    xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
-            // in context:
-            //SWIFT_API_FUNCNAME_R_wrap < -function(modelInstance, obsVarId, observations, arrayLength, start, statisticId) {
-            //    modelInstance_xptr < -getSwiftXptr(modelInstance)
-            //    xptr <- SWIFT_API_FUNCNAME_R(modelInstance_xptr, obsVarId, observations, arrayLength, start, statisticId)
-            //    return (mkSwiftObjRef(xptr))
-            //}
             sb.Append(typeAndName.VarName);
         }
 
@@ -128,6 +206,7 @@ namespace ApiWrapperGenerator
 
         //public string RoxygenExportTag { get; set; }
         public string MatlabInputParameterTag { get; set; }
+        public string NativeLibraryNameNoext { get; set; }
         public string MatlabCommentMarker { get; set; }
         //public bool RoxyExportFunctions { get; set; }
 
