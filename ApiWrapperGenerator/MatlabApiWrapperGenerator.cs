@@ -9,6 +9,7 @@ namespace ApiWrapperGenerator
         public MatlabApiWrapperGenerator()
         {
             ApiCallOpenParenthesis = false; // a kludge switch to cater for matlab's calllib
+            FunctionOutputName = "f";
             FunctionNamePostfix = "";
             NativeLibraryNameNoext = "mylibname";
 
@@ -108,15 +109,52 @@ namespace ApiWrapperGenerator
                 "C_ARGNAME = " + GetXptrFromObjRefFunction + @"(RCPP_ARGNAME)" + StatementSep, //    x_ptr = getSwiftXptr(x);
                 ""); // no cleanup
 
-            SetTransientArgConversion(".*\\**", "",
+            // typenames followed by at least one *
+            SetTransientArgConversion(".*\\*+", "",
                 "C_ARGNAME = " + GetXptrFromObjRefFunction + @"(RCPP_ARGNAME)" + StatementSep, //    x_ptr = getSwiftXptr(x);
                 ""); // no cleanup
 
         }
 
+        /// <summary> Gets or sets the name of the output of the matlab functon being generated</summary>
+        public string FunctionOutputName { get; set; }
+
         public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
         {
-            return ReturnsVectorWrapper(StringHelper.ReturnsCharPP);
+            CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
+            {
+                IsMatchFunc = StringHelper.ReturnsCharPP,
+                StatementSep = this.StatementSep,
+                ApiArgToWrappingLang = ApiArgToMatlabfunctionArgument,
+                ApiCallArgument = this.ApiCallArgument,
+                TransientArgsCreation = this.TransientArgsCreation,
+                FunctionNamePostfix = this.FunctionNamePostfix,
+                CalledFunctionNamePostfix = this.ApiCallPostfix,
+                ApiSignatureToDocString = this.ApiSignatureToBasicRoxygenString,
+                Template = @"
+function f = %WRAPFUNCTION%(%WRAPARGS%)
+%WRAPFUNCTIONDOCSTRING%
+    pSize = libpointer('int32Ptr', 0);
+
+    result = calllib('" + NativeLibraryNameNoext + @"', '%FUNCTION%', %ARGS% pSize);
+
+    len = pSize.Value;
+
+    resCell = cell(1,len);
+    for i=1:len,
+        nP = result + (i - 1);
+        resCell(i) = nP.Value;
+    end
+
+    f = resCell;
+
+    clear pSize;
+    clear result;
+end
+"
+            };
+
+            return cw;
         }
 
         public CustomFunctionWrapperImpl ReturnsDoublePtrWrapper()
@@ -270,9 +308,13 @@ namespace ApiWrapperGenerator
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
             var funcDecl = GetTypeAndName(funcAndArgs.Function);
+            bool returnsVal = FunctionReturnsValue(funcDecl);
+
+            string funcDef = string.Format("function {0} = ", returnsVal ? FunctionOutputName : "[]");
+
             // SWIFT_API OBJECTIVE_EVALUATOR_WILA_PTR CreateSingleObservationObjectiveEvaluatorWila(MODEL_SIMULATION_PTR simulation, const char* obsVarId, double* observations, TS_GEOMETRY_PTR obsGeom, const char* statisticId);
             // function f = CreateSingleObservationObjectiveEvaluatorWila_m(simulation, obsVarId, observations, obsGeom, statisticId)
-            string funcDef = "function f = " + funcDecl.VarName + FunctionNamePostfix; // function f = CreateSingleObservationObjectiveEvaluatorWila_m
+            funcDef += funcDecl.VarName + FunctionNamePostfix; // function f = CreateSingleObservationObjectiveEvaluatorWila_m
             sb.Append(funcDef);
             bool r = AddFunctionArgs(sb, funcAndArgs, ApiArgToMatlabfunctionArgument);
             sb.Append(' ');
@@ -288,9 +330,10 @@ namespace ApiWrapperGenerator
         {
             if (returnsVal)
             {
-                // E.G. 
-                // f = createxptr(res, 'MODEL_SIMULATION_PTR')
-                AddBodyLine(sb, "f = " + CreateXptrObjRefFunction + @"(" + ReturnedValueVarname + ", '" + funcDef.TypeName + "')");
+                if (IsPointer(funcDef.TypeName))
+                    AddBodyLine(sb, FunctionOutputName+ " = " + CreateXptrObjRefFunction + @"(" + ReturnedValueVarname + ", '" + funcDef.TypeName + "')");
+                else
+                    AddBodyLine(sb, FunctionOutputName + " = " + ReturnedValueVarname);
             }
         }
     }
