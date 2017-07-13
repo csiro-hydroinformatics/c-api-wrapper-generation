@@ -51,6 +51,7 @@
     <Compile Include="MatlabApiWrapperGenerator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RcppGlueWrapperGenerator.cs" />
+    <Compile Include="PythonCffiWrapperGenerator.cs" />
     <Compile Include="RXptrWrapperGenerator.cs" />
     <Compile Include="StringHelper.cs" />
     <Compile Include="TypeAndName.cs" />

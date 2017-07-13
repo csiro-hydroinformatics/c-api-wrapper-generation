@@ -10,6 +10,8 @@ namespace ApiWrapperGenerator
         protected BaseApiConverter()
         {
             NewLineString = StringHelper.NewLineString;
+            ArgListOpenDelimiter = "(";
+            ArgListCloseDelimiter = ")";
             FunctionBodyOpenDelimiter = "{";
             FunctionBodyCloseDelimiter = "}";
             StatementSep = ";";
@@ -54,11 +56,13 @@ namespace ApiWrapperGenerator
         public string BodyLineOpenFunctionDelimiter { get { return UniformIndentation + FunctionBodyOpenDelimiter + NewLineString; } }
         public string BodyLineCloseFunctionDelimiter { get { return UniformIndentation + FunctionBodyCloseDelimiter + NewLineString; } }
 
+        public string ArgListOpenDelimiter { get; set; }
+        public string ArgListCloseDelimiter { get; set; }
         public string FunctionBodyOpenDelimiter { get; set; }
-
         public string FunctionBodyCloseDelimiter { get; set; }
 
         public string ApiCallPostfix { get; set; }
+        public string ApiCallPrefix { get; set; }
 
         public string StatementSep { get; set; }
 
@@ -182,10 +186,10 @@ namespace ApiWrapperGenerator
         /// <param name="transientArgs"> (Optional) The transient arguments.</param>
         ///
         /// <returns> True if it succeeds, false if it fails.</returns>
-        protected static bool AddFunctionArgs(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs = null, bool openParenthesis=true)
+        protected bool AddFunctionArgs(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs = null, bool openParenthesis=true)
         {
             if(openParenthesis) // Kludge for e.g. matlab calllib('mylib','mufunc',
-                sb.Append("(");
+                sb.Append(ArgListOpenDelimiter);
             string[] args = GetFuncArguments(funcAndArgs);
             if (args.Length > 0)
             {
@@ -196,7 +200,7 @@ namespace ApiWrapperGenerator
                 string arg = args[args.Length - 1];
                 if (!StringHelper.AddArgument(sb, argFunc, transientArgs, arg)) return false;
             }
-            sb.Append(")");
+            sb.Append(ArgListCloseDelimiter);
             return true;
         }
 
@@ -332,6 +336,7 @@ namespace ApiWrapperGenerator
         {
             string result;
             sb.Append(BodyLineOpenFunctionDelimiter);
+            AddInFunctionDocString(sb, funcAndArgs);
             bool ok = createWrapFuncBody(sb, funcAndArgs, argFunc);
             sb.Append(BodyLineCloseFunctionDelimiter);
             if (!ok)
@@ -339,6 +344,15 @@ namespace ApiWrapperGenerator
             else
                 result = sb.ToString();
             return result;
+        }
+
+        /// <summary> Placeholder to add things such as Python docstrings.</summary>
+        ///
+        /// <param name="sb">          The sb.</param>
+        /// <param name="funcAndArgs"> The function and arguments.</param>
+        protected virtual void AddInFunctionDocString(StringBuilder sb, FuncAndArgs funcAndArgs)
+        {
+            // nothing here.
         }
 
         protected bool createWrapFuncBody(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc)
@@ -426,7 +440,7 @@ namespace ApiWrapperGenerator
 
         protected virtual void CreateApiFunctionCallFunction(StringBuilder sb, TypeAndName funcDef)
         {
-            sb.Append(funcDef.VarName + ApiCallPostfix);
+            sb.Append(ApiCallPrefix + funcDef.VarName + ApiCallPostfix);
         }
 
         protected abstract void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal);

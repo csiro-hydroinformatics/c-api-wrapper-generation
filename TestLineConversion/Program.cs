@@ -26,6 +26,8 @@ namespace TestLineConversion
                 TestMatlabWrpGen(args);
             else if (gen == "r")
                 TestRWrpGen(args);
+            else if (gen == "p")
+                TestPyWrpGen(args);
             else
                 Console.Error.WriteLine("Unknown option " + gen);
         }
@@ -69,9 +71,10 @@ namespace TestLineConversion
             ProcessTestLine(args, gen);
         }
 
-        private static void ProcessTestLine(string[] args, IApiConverter gen)
+        private static void ProcessTestLine(string[] args, IApiConverter gen, HeaderFilter filter = null)
         {
-            HeaderFilter filter = createFilter();
+            if(filter == null)
+                filter = createFilter();
             string apiLine = args[0];
             apiLine = filter.FilterInput(apiLine)[0];
             var w = new WrapperGenerator(gen, filter);
@@ -82,6 +85,18 @@ namespace TestLineConversion
         private static void TestMatlabWrpGen(string[] args)
         {
             var gen = new MatlabApiWrapperGenerator();
+            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
+            ProcessTestLine(args, gen);
+        }
+
+        private static void TestPyWrpGen(string[] args)
+        {
+            var gen = new PythonCffiWrapperGenerator();
+            gen.FunctionNamePostfix = "_py";
+            gen.ApiCallPrefix = "libname.";
+            gen.ApiCallPostfix = "";
+            gen.SetTransientArgConversion(".*_PTR", "_xptr", "C_ARGNAME = cinterop.getExternalXptr(RCPP_ARGNAME)", "");
+
             gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
             ProcessTestLine(args, gen);
         }

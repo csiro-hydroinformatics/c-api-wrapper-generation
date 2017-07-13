@@ -43,12 +43,13 @@ namespace ApiWrapperGenerator
 
         public string FunctionNamePostfix = "";
         public string CalledFunctionNamePostfix = "";
+        public string CalledFunctionNamePrefix = "";
 
         public string CreateWrapper(string funDef, bool declarationOnly)
         {
             string funcName = StringHelper.GetFuncName(funDef);
             string wrapFuncName = funcName + this.FunctionNamePostfix;
-            string calledfuncName = funcName + this.CalledFunctionNamePostfix;
+            string calledfuncName = CalledFunctionNamePrefix + funcName + this.CalledFunctionNamePostfix;
             var fullResult = Template
                 .Replace(Wrapargstvar, WrapArgsDecl(funDef, 0, 0))
                 .Replace(Argstvar, FuncCallArgs(funDef, 0, 0))
@@ -63,6 +64,10 @@ namespace ApiWrapperGenerator
                 .Replace(", ,", ",")
                 .Replace(",)", ")")
                 ;
+
+            // for e.g. python avoid multiple newlines.
+            fullResult = fullResult.Replace("\n\r\n", "\r\n");
+            fullResult = fullResult.Replace("\r\n", StringHelper.NewLineString);
 
             if (declarationOnly)
                 return (getDeclaration(fullResult)); // HACK - brittle as assumes the template header is the only thing on the first line.
