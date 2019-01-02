@@ -21,11 +21,12 @@ namespace ApiWrapperGenerator
             FunctionBodyCloseDelimiter = "";
             PyDocstringStartMarker = "";
             PyDocExportFunctions = true;
-            PyDocstringParameterTag = ":param";
-            PyDocstringExportTag = ":export";
+            PyDocstringParameterTag = "";
+            PyDocstringExportTag = "";
             StatementSep = "";
-            CreateXptrObjRefFunction = "cinterop.mkExternalObjRef";
-            GetXptrFromObjRefFunction = "cinterop.getExternalXptr";
+            // See https://pypi.org/project/refcount/
+            CreateXptrObjRefFunction = "custom_wrap_cffi_native_handle"; // because needs a custom callback del function.
+            GetXptrFromObjRefFunction = "unwrap_cffi_native_handle";
 
             ClearCustomWrappers();
             CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
