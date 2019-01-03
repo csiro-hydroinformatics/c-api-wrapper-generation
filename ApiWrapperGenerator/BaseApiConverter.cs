@@ -491,7 +491,6 @@ namespace ApiWrapperGenerator
 
         protected TransientArgumentConversion FindTransientArgConversion(string typename, string varname)
         {
-            TransientArgumentConversion t;
             ArgConversion conv = FindConverter(typename);
             return (conv == null ? null : conv.Apply(varname));
         }
