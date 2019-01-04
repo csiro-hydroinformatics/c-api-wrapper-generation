@@ -175,15 +175,43 @@ namespace ApiWrapperGenerator
         {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {
+                StatementSep = this.StatementSep,
                 IsMatchFunc = StringHelper.ReturnsCharPP,
-                ApiArgToWrappingLang = ApiArgToRcpp,
-                ApiCallArgument = ApiCallArgument,
+                ApiCallArgument = this.ApiCallArgument,
+                TransientArgsCreation = this.TransientArgsCreation,
                 FunctionNamePostfix = this.FunctionNamePostfix,
+                CalledFunctionNamePrefix = this.ApiCallPrefix,
+                CalledFunctionNamePostfix = this.ApiCallPostfix,
+                ApiArgToWrappingLang = ApiArgToRcpp,
                 Template = @"
 std::vector<std::string> %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
 	char** names = %FUNCTION%(%ARGS% &size);
+	return toVectorCleanup(names, size);
+}
+"
+            };
+
+            return cw;
+        }
+        public CustomFunctionWrapperImpl ReturnsDoublePtrWrapper()
+        {
+            CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
+            {
+                StatementSep = this.StatementSep,
+                IsMatchFunc = StringHelper.ReturnsDoublePtr,
+                ApiCallArgument = this.ApiCallArgument,
+                TransientArgsCreation = this.TransientArgsCreation,
+                FunctionNamePostfix = this.FunctionNamePostfix,
+                CalledFunctionNamePrefix = this.ApiCallPrefix,
+                CalledFunctionNamePostfix = this.ApiCallPostfix,
+                ApiArgToWrappingLang = ApiArgToRcpp,
+                Template = @"
+std::vector<std::vector<std::double>> %WRAPFUNCTION%(%WRAPARGS%)
+{
+	int size; 
+	double** values = %FUNCTION%(%ARGS% &size);
 	return toVectorCleanup(names, size);
 }
 "
