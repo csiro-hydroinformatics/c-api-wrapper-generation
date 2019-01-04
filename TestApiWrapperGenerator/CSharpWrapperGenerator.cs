@@ -103,7 +103,7 @@ namespace TestApiWrapperGenerator
             HeaderFilter filter = new HeaderFilter();
             var gen = new CsharpApiWrapperGenerator();
 
-            string apiLine = "SWIFT_API MODEL_SIMULATION_PTR CreateNewFromNetworkInfo(NODE_INFO_PTR nodes, int numNodes, LINK_INFO_PTR links, int numLinks);";
+            //string apiLine = "SWIFT_API MODEL_SIMULATION_PTR CreateNewFromNetworkInfo(NODE_INFO_PTR nodes, int numNodes, LINK_INFO_PTR links, int numLinks);";
             
         }
 

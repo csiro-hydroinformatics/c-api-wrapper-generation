@@ -44,15 +44,15 @@ namespace ApiWrapperGenerator
             // clear pNodeIds;
                 "clear(C_ARGNAME);");
 
-            // All structs are marshalled in a similar manner:
-            string createPtr =
-                // IntPtr geom_struct = InteropHelper.StructureToPtr(geom);
-                // IntPtr C_ARGNAME = InteropHelper.StructureToPtr(RCPP_ARGNAME);
-                "IntPtr C_ARGNAME = InteropHelper.StructureToPtr(RCPP_ARGNAME);";
-            string freePtr =
-                // InteropHelper.FreeNativeStruct(geom_struct, ref geom, true);
-                // InteropHelper.FreeNativeStruct(C_ARGNAME, ref RCPP_ARGNAME, true);
-                "InteropHelper.FreeNativeStruct(C_ARGNAME, ref RCPP_ARGNAME, true);";
+            // // All structs are marshalled in a similar manner:
+            // string createPtr =
+            //     // IntPtr geom_struct = InteropHelper.StructureToPtr(geom);
+            //     // IntPtr C_ARGNAME = InteropHelper.StructureToPtr(RCPP_ARGNAME);
+            //     "IntPtr C_ARGNAME = InteropHelper.StructureToPtr(RCPP_ARGNAME);";
+            // string freePtr =
+            //     // InteropHelper.FreeNativeStruct(geom_struct, ref geom, true);
+            //     // InteropHelper.FreeNativeStruct(C_ARGNAME, ref RCPP_ARGNAME, true);
+            //     "InteropHelper.FreeNativeStruct(C_ARGNAME, ref RCPP_ARGNAME, true);";
 
             //SetTypeMap("TS_GEOMETRY_PTR", "ref MarshaledTimeSeriesGeometry");
             SetTransientArgConversion(

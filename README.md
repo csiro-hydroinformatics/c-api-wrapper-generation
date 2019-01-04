@@ -10,7 +10,12 @@ The code is in C# because, well, this is the most productive. I'll see whether I
 
 Note to self: something like T4 for code generation could be more versatile and scalable. 
 
-```S
+```sh
+cd /home/per202/src/github_jm/rcpp-wrapper-generation/ApiWrapperGenerator
+msbuild ApiWrapperGenerator.csproj /p:Configuration=Debug /p:Platform=AnyCPU
+```
+
+```R
 wgenDir <- 'f:/path/to/this/directory'
 wgenDir <- 'F:/src/github_jm/rcpp-wrapper-generation'
 library(rClr) # rclr.codeplex.com
@@ -20,7 +25,7 @@ gen <- clrNew('Rcpp.CodeGen.WrapperGenerator')
 clrGetProperties(gen)
 ```
 
-```S
+```R
 clrSet(gen, 'OpaquePointers', TRUE)
 clrSet(gen, 'OpaquePointerClassName', 'OpaquePointer')
 clrSet(gen, 'AddRcppExport', TRUE)
