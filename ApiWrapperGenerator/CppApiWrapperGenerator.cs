@@ -7,6 +7,7 @@ namespace ApiWrapperGenerator
         public CppApiWrapperGenerator()
         {
             AssignmentSymbol = "=";
+            ReturnedValueDeclarationKeyword = "auto";
             ReturnedValueVarname = "result";
             FunctionNamePostfix = "_cpp";
             //OpaquePointers = false;
@@ -31,7 +32,9 @@ namespace ApiWrapperGenerator
             SetTypeMap("const int*", "const std::vector<int>&");
             SetTypeMap("const double*", "const std::vector<double>&");
 
-            OpaquePointerClassName = "OpaquePointer";
+            OpaquePointerClassName = "opaque_pointer_handle"; // moirai
+            CallGetMethod = "->get()";
+
             PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
 
         }
@@ -188,7 +191,7 @@ std::vector<std::string> %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
 	char** names = %FUNCTION%(%ARGS% &size);
-	return toVectorCleanup(names, size);
+	return cinterop::utils::to_cpp_string_vector(names, size);
 }
 "
             };
@@ -212,7 +215,7 @@ std::vector<std::vector<std::double>> %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
 	double** values = %FUNCTION%(%ARGS% &size);
-	return toVectorCleanup(names, size);
+	return cinterop::utils::to_cpp_numeric_vector(values, size);
 }
 "
             };
