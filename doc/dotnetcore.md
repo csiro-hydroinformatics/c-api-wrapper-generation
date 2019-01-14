@@ -8,7 +8,7 @@ Trying [.NET core 3.0.](https://dotnet.microsoft.com/download/dotnet-core/3.0)
 
 And putting in ~/config/dotnet to source from:
 
-```sh
+```bash
 export DOTNET_ROOT=$HOME/dotnet
 export PATH=$PATH:$HOME/dotnet
 ```
@@ -40,7 +40,7 @@ The specified framework 'Microsoft.NETCore.App', version '2.1.0' was not found.
 
 Fair enough.
 
-```sh
+```bash
 rm Properties/AssemblyInfo.cs
 dotnet build -f netstandard2.0  ApiWrapperGenerator.csproj
 ```
@@ -48,12 +48,12 @@ Looking good!
 
 `cd ~/src/github_jm/rcpp-wrapper-generation/TestApiWrapperGenerator` `dotnet build -f netcoreapp2.0 TestApiWrapperGenerator.csproj`
 
-```sh
+```bash
 cd ~/src/github_jm/rcpp-wrapper-generation/ApiWrapperGenerator
 dotnet restore ApiWrapperGenerator.sln
 ```
 
-```sh
+```bash
 dotnet build --configuration Release --no-restore ApiWrapperGenerator.sln
 ```
 
@@ -63,7 +63,7 @@ Tried to use myultiple target fw in proj files but this requires explicit cmd li
     <!-- <TargetFrameworks>netstandard2.0;net472;net461</TargetFrameworks> -->
 ```
 
-```sh
+```bash
 cd ~/src/github_jm/rcpp-wrapper-generation/TestApiWrapperGenerator
 dotnet test TestApiWrapperGenerator.csproj 
 ```
