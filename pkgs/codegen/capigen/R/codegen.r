@@ -1,56 +1,21 @@
+#' @export
 generated_cpp_comment_header <- function() {
-  return(
-'////////////////////////////////////
-// 
-// *** THIS FILE IS GENERATED ****
-// DO NOT MODIFY IT MANUALLY, AS YOU ARE VERY LIKELY TO LOSE WORK
-// 
-////////////////////////////////////
-
-'
-  )
+  capihelp::generated_cpp_comment_header()
 }
 
 #' @export
 default_xptr_wrapper_prepend <- function() {
-  return(
-'##################
-# 
-# *** THIS FILE IS GENERATED ****
-# DO NOT MODIFY IT MANUALLY, AS YOU ARE VERY LIKELY TO LOSE WORK
-# 
-##################
-
-'
-  )
+  capihelp::default_xptr_wrapper_prepend()
 }
 
 #' @export
 default_py_cffi_wrapper_prepend <- function() {
-  x <- default_xptr_wrapper_prepend()
-  x <- paste0(x, 
-'
-
-from refcount.interop import *
-
-'
-  )
-  return(x)
+  capihelp::default_py_cffi_wrapper_prepend()
 }
-
 
 #' @export
 default_matlab_wrapper_prepend <- function() {
-  return(
-'%%%%%%%%%%%%%%%%%%
-% 
-% *** THIS FILE IS GENERATED ****
-% DO NOT MODIFY IT MANUALLY, AS YOU ARE VERY LIKELY TO LOSE WORK
-% 
-%%%%%%%%%%%%%%%%%%
-
-'
-  )
+  capihelp::default_matlab_wrapper_prepend()
 }
 
 

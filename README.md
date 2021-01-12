@@ -71,6 +71,78 @@ CreateHypercubeParameterizer_R <- function(strategy) {
 
 ## Getting started
 
-_This section is a placeholder._
+_Note to self; consider using `F#` for scripting rather than using R and .NET._
 
-Need to adapt some internal documentation. Consider using `F#` for scripting rather than using R and .NET.
+### Windows 
+
+```bat
+MSBuild %github_dir%\c-api-wrapper-generation\ApiWrapperGenerator\ApiWrapperGenerator.sln /t:Build /p:Configuration=Debug
+```
+
+### Linux
+
+
+#### prerequisites
+
+Check dotnet is available with `which dotnet`, and `dotnet --info` should return on of the 2.x runtimes.
+
+If need be follow the [Manual Install](https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian#manual-install). There are other ways to obtain dotnet.
+
+`cd ~/Downloads` `ls dotnet*`
+
+```text
+dotnet-sdk-5.0.101-linux-x64.tar.gz
+dotnet-sdk-3.1.404-linux-x64.tar.gz
+dotnet-sdk-2.1.811-linux-x64.tar.gz
+dotnet-sdk-3.1.402-linux-x64.tar.gz
+```
+
+```bash
+tar zxf dotnet-sdk-2.1.811-linux-x64.tar.gz  -C "$HOME/dotnet"
+```
+
+Optionally if you want newer versions:
+
+```bash
+tar zxf dotnet-sdk-3.1.404-linux-x64.tar.gz  -C "$HOME/dotnet"
+tar zxf dotnet-sdk-5.0.101-linux-x64.tar.gz  -C "$HOME/dotnet"
+```
+
+`nano ~/.bashrc` then adding
+
+```sh
+export DOTNET_ROOT=$HOME/dotnet
+export PATH=$PATH:$HOME/dotnet
+```
+
+rClr:
+
+```
+sudo apt install mono-xbuild
+sudo apt install libmono-2.0-dev
+sudo apt install msbuild
+
+cd ~/src/github_jm/rClr
+
+cd ~/src/github_jm
+export BUILDTYPE=Debug
+R CMD INSTALL --no-test-load rClr
+
+cd ~/src/github_jm
+R CMD build --no-build-vignettes rClr
+R CMD INSTALL rClr_0.9.0.tar.gz
+```
+
+#### Building our codegen engine
+
+```sh
+cd engine/ApiWrapperGenerator
+dotnet restore ApiWrapperGenerator.sln
+```
+
+```bash
+dotnet build --configuration Release --no-restore ApiWrapperGenerator.sln
+
+cd ../TestApiWrapperGenerator/
+dotnet test TestApiWrapperGenerator.csproj 
+```

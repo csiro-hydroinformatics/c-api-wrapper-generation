@@ -420,7 +420,7 @@ namespace ApiWrapperGenerator
     IntPtr size = InteropHelper.AllocHGlobal<int>();
     %TRANSARGS%    IntPtr result = " + ClassName + @".NativeSwiftLib.GetFunction<%FUNCTION%_csdelegate>(" +
 QuotedString("%FUNCTION%") +
-@")(%ARGS%size);
+@")(%ARGS%, size);
     %CLEANTRANSARGS%    int n = InteropHelper.Read<int>(size, true);
     return InteropHelper.GlobalAnsiToArrayString(result, n, true);
 }

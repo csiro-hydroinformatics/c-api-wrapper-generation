@@ -67,7 +67,7 @@ namespace ApiWrapperGenerator
             return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr);
         }
 
-        private CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun)
+        public CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun)
         {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {
@@ -85,7 +85,7 @@ def %WRAPFUNCTION%(%WRAPARGS%):
 %WRAPFUNCTIONDOCSTRING%
     %TRANSARGS%
     result = %FUNCTION%(%WRAPARGS%)
-    return("+ CreateXptrObjRefFunction + @"(result,'dummytype'))
+    return "+ CreateXptrObjRefFunction + @"(result,'dummytype')
 "
             };
             return cw;

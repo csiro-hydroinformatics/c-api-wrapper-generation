@@ -136,7 +136,7 @@ function f = %WRAPFUNCTION%(%WRAPARGS%)
 %WRAPFUNCTIONDOCSTRING%
     pSize = libpointer('int32Ptr', 0);
 
-    result = calllib('" + NativeLibraryNameNoext + @"', '%FUNCTION%', %ARGS% pSize);
+    result = calllib('" + NativeLibraryNameNoext + @"', '%FUNCTION%', %ARGS%, pSize);
 
     len = pSize.Value;
 
@@ -162,7 +162,7 @@ end
             return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr);
         }
 
-        private CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun)
+        public CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun)
         {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {

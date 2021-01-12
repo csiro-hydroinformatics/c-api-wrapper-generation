@@ -60,7 +60,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
             return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr, "double*", "NumericVector", "to_custom_numeric_vector<NumericVector>");
         }
 
-        private CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun, string apitype, 
+        public CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun, string apitype, 
             string rcpptype, string convertingFunc)
         {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
@@ -77,7 +77,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
 " + rcpptype + @" %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
-    %TRANSARGS%    " + apitype + @" values = %FUNCTION%(%ARGS% &size);
+    %TRANSARGS%    " + apitype + @" values = %FUNCTION%(%ARGS%, &size);
     %CLEANTRANSARGS%    return " + convertingFunc + @"(values, size, true);
 }
 "

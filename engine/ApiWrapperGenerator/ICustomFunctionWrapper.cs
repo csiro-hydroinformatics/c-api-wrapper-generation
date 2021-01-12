@@ -32,7 +32,8 @@ namespace ApiWrapperGenerator
         public string Wrapfunctvar = "%WRAPFUNCTION%";
         public string Transargtvar = "%TRANSARGS%";
         public string Transargcleantvar = "%CLEANTRANSARGS%";
-
+        /// Number of arguments removed used for the %ARGS% marker. If API args (a, b, c) and  RemovedLastArgs == 1, then template replacement with write a, b
+        public int RemovedLastArgs = 1;
 
         public Action<StringBuilder, TypeAndName> ApiArgToWrappingLang = null;
         public Action<StringBuilder, TypeAndName> ApiCallArgument = null;
@@ -52,7 +53,7 @@ namespace ApiWrapperGenerator
             string calledfuncName = CalledFunctionNamePrefix + funcName + this.CalledFunctionNamePostfix;
             var fullResult = Template
                 .Replace(Wrapargstvar, WrapArgsDecl(funDef, 0, 0))
-                .Replace(Argstvar, FuncCallArgs(funDef, 0, 0))
+                .Replace(Argstvar, FuncCallArgs(funDef, 0, 0, false))
                 .Replace(Wrapfunctvar, wrapFuncName)
                 .Replace(Functvar, calledfuncName)
                 .Replace(Transargtvar, TransientArgs(funDef, 0, 0))
@@ -132,17 +133,17 @@ namespace ApiWrapperGenerator
             return result;
         }
 
-        private string FuncCallArgs(string funDef, int start, int offsetLength)
+        private string FuncCallArgs(string funDef, int start, int offsetLength, bool appendSeparator)
         {
             if (ApiCallArgument == null) return string.Empty;
-            return ProcessFunctionArguments(funDef, start, offsetLength, ApiCallArgument, appendSeparator: true);
+            return ProcessFunctionArguments(funDef, start, offsetLength, ApiCallArgument, appendSeparator);
         }
 
         private string ProcessFunctionArguments(string funDef, int start, int offsetLength, Action<StringBuilder, TypeAndName> argFunc, bool appendSeparator = false, string sep = ", ")
         {
             StringBuilder sb = new StringBuilder();
             var args = StringHelper.GetFunctionArguments(funDef);
-            int end = args.Length - 1 - offsetLength;
+            int end = args.Length - this.RemovedLastArgs - offsetLength;
             StringHelper.appendArgs(sb, argFunc, null, args, 0, end, sep);
             if (appendSeparator && (end > start))
                 AppendSeparatorIfNeeded(sep, sb);

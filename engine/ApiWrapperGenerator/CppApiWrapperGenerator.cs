@@ -190,7 +190,7 @@ namespace ApiWrapperGenerator
 std::vector<std::string> %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
-	char** names = %FUNCTION%(%ARGS% &size);
+	char** names = %FUNCTION%(%ARGS%, &size);
 	return cinterop::utils::to_cpp_string_vector(names, size);
 }
 "
@@ -214,7 +214,7 @@ std::vector<std::string> %WRAPFUNCTION%(%WRAPARGS%)
 std::vector<std::vector<std::double>> %WRAPFUNCTION%(%WRAPARGS%)
 {
 	int size; 
-	double** values = %FUNCTION%(%ARGS% &size);
+	double** values = %FUNCTION%(%ARGS%, &size);
 	return cinterop::utils::to_cpp_numeric_vector(values, size);
 }
 "

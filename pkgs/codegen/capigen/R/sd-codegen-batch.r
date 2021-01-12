@@ -86,7 +86,8 @@ generate_uchronia_python_all_wrappers <- function(uchroniaSrcPath='',
   if(uchroniaSrcPath=='') uchroniaSrcPath <- find_uchronia_src_path()
   generate_py_cffi_wrappers(prepend_r_xptr_header,
 	  infile=extern_c_api_header_file_uchronia_r(uchroniaSrcPath),
-	  outfile=outfile_py_cffi_wrappers_uchronia(uchroniaSrcPath), api_filter=create_uchronia_api_filter()
+	  outfile=outfile_py_cffi_wrappers_uchronia(uchroniaSrcPath), api_filter=create_uchronia_api_filter(),
+    cffi_obj_name='uchronia_so'
   )
   # uchroniaPkgPath <- check_dir_exists(file.path(uchroniaSrcPath, 'bindings/R/pkgs/uchronia'))
   # generate_xptr_wrappers_from_rcppfunc(uchroniaSrcPath, prepend_r_xptr_header,
