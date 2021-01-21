@@ -20,14 +20,47 @@ namespace ApiWrapperGenerator
         public string LocalVarCleanup;
     }
 
-    public class ArgConversion
+    public abstract class BaseValueConversion
     {
-        string VariablePostfix;
-        string SetupTemplate;
-        string CleanupTemplate;
+        public const string WrappedApiArgumentName = "C_ARGNAME";
+        public const string WrapperArgumentName = "RCPP_ARGNAME";
+    }
 
-        const string WrappedApiArgumentName = "C_ARGNAME";
-        const string WrapperArgumentName = "RCPP_ARGNAME";
+    public class ReturnedValueConversion : BaseValueConversion
+    {
+        /// <summary>
+        /// Template string specifying how to create the transient object. Uses WrappedApiArgumentName and WrapperArgumentName as placeholders
+        /// </summary>
+        public string ConversionTemplate;
+
+        public string Apply(string variableName)
+        {
+            return ReplaceVariables(variableName, ConversionTemplate);
+        }
+        public string ReplaceVariables(string vname, string template)
+        {
+            return template
+                .Replace(WrappedApiArgumentName, vname);
+        }
+    }
+
+    /// <summary>
+    /// Specifies how to convert an argument in the bindings type into an API argument for an API function call
+    /// </summary>
+    public class ArgConversion : BaseValueConversion
+    {
+        /// <summary>
+        /// String to append to the base variable name to create a transient object to pass as argument
+        /// </summary>
+        string VariablePostfix;
+        /// <summary>
+        /// Template string specifying how to create the transient object. Uses WrappedApiArgumentName and WrapperArgumentName as placeholders
+        /// </summary>
+        string SetupTemplate;
+        /// <summary>
+        /// Template string specifying how to dispose of the transient object after the API call. Uses WrappedApiArgumentName and WrapperArgumentName as placeholders
+        /// </summary>
+        string CleanupTemplate;
 
         public TransientArgumentConversion Apply(string variableName)
         {

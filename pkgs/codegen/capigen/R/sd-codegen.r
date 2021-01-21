@@ -610,10 +610,10 @@ create_py_cffi_generator_base <- function(prepend_header=default_py_cffi_wrapper
 
   # HACK
   prepend_header_custom <- paste0(prepend_header, '
-def custom_wrap_cffi_native_handle(obj, type_id="", release_callback = None):
-    if release_callback is None:
-        release_callback = DisposeSharedPointer_py
-    return wrap_cffi_native_handle(obj, type_id, release_callback)
+def custom_wrap_cffi_native_handle(obj, type_id="", release_native = None):
+    if release_native is None:
+        release_native = DisposeSharedPointer_py
+    return wrap_cffi_native_handle(obj, type_id, release_native)
 
 '
   )

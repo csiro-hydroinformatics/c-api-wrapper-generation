@@ -193,10 +193,11 @@ apply_c_preprocessor <- function(include_dirs, api_importer_file, outfile, execu
   }
 }
 
+
 #' @export
-create_cffi_cdefs <- function(preprocessed_cpp_file, outdir, pattern_start_structs, 
+extract_cffi_cdefs <- function(preprocessed_cpp_file_lines, pattern_start_structs="typedef struct.*", 
   extern_c_start_match='extern .C. \\{', extern_c_end_match = '^\\}') {
-  a <- readLines(preprocessed_cpp_file)
+  a <- preprocessed_cpp_file_lines
 
   struct_start_line <- (which(stringr::str_detect(a, pattern_start_structs)))[1]
   extern_c_start_line <- (which(stringr::str_detect(a, extern_c_start_match)))[1]
@@ -229,6 +230,16 @@ create_cffi_cdefs <- function(preprocessed_cpp_file, outdir, pattern_start_struc
   # funcs <- paste(funcs, collapse= " ")
   # funcs <- stringr::str_replace_all(funcs, ' *; *', ';\n')
 
+  return(list(structs=structs,funcs=funcs))
+}
+
+#' @export
+create_cffi_cdefs <- function(preprocessed_cpp_file, outdir, pattern_start_structs, 
+  extern_c_start_match='extern .C. \\{', extern_c_end_match = '^\\}') {
+  a <- readLines(preprocessed_cpp_file)
+  extracted <- extract_cffi_cdefs(a, pattern_start_structs, extern_c_start_match, extern_c_end_match)
+  structs <- extracted[[1]]
+  funcs <- extracted[[2]]
   writeLines( structs, file.path(outdir, 'structs_cdef.h'))
   writeLines( funcs, file.path(outdir, 'funcs_cdef.h'))
 }

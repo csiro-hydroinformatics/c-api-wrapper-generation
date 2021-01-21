@@ -29,15 +29,33 @@ namespace ApiWrapperGenerator
             PyDocstringExportTag = "";
 
             StatementSep = "";
-            CreateXptrObjRefFunction = "cinterop.mkExternalObjRef";
-            GetXptrFromObjRefFunction = "cinterop.getExternalXptr";
 
             ClearCustomWrappers();
             CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
             AddCustomWrapper(cw);
 
+            FunctionWrappers = ""; 
+
             GeneratePyDocstringDoc = true;
             PyDocstringDocPostamble = string.Empty;
+
+            SetTypeMap("void", "None");
+            SetTypeMap("int", "int");
+            SetTypeMap("int*", "np.ndarray");
+            SetTypeMap("char**", "List[str]");
+            SetTypeMap("char*", "str");
+            SetTypeMap("char", "char");
+            SetTypeMap("double", "float");
+            SetTypeMap("double*", "np.ndarray");
+            SetTypeMap("double**", "np.ndarray");
+            SetTypeMap("bool", "bool");
+            // SetTypeMap("const char", "const char");
+            // SetTypeMap("const int", "int");
+            // SetTypeMap("const double", "NumericVector");
+            // SetTypeMap("const char*", "str");
+            // SetTypeMap("const int*", "IntegerVector");
+            // SetTypeMap("const double*", "NumericVector");
+
 
             //SetTransientArgConversion(".*", "",
             //    "C_ARGNAME = " + GetXptrFromObjRefFunction + @"(RCPP_ARGNAME)" + StatementSep, //    x <- getSwiftXptr(x);
@@ -73,7 +91,7 @@ namespace ApiWrapperGenerator
             {
                 StatementSep = this.StatementSep,
                 IsMatchFunc = matchFun,
-                ApiArgToWrappingLang = ApiArgToRfunctionArgument,
+                ApiArgToWrappingLang = ApiArgToPyFunctionArgument,
                 ApiCallArgument = this.ApiCallArgument,
                 TransientArgsCreation = this.TransientArgsCreation,
                 FunctionNamePostfix = this.FunctionNamePostfix,
@@ -94,9 +112,10 @@ def %WRAPFUNCTION%(%WRAPARGS%):
         public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
         {
             var sb = new StringBuilder();
-            // // TODO the @ things
-            //@convert_strings
-            //@check_exceptions
+            if (!string.IsNullOrEmpty(FunctionWrappers))
+                //@convert_strings
+                //@check_exceptions
+                sb.Append(FunctionWrappers + NewLineString);
             if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
             string result = "";
             result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
@@ -110,7 +129,6 @@ def %WRAPFUNCTION%(%WRAPARGS%):
                 CreateWrapFuncPyDoc(sb, funcAndArgs);
             }
         }
-
 
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
         {
@@ -134,7 +152,7 @@ def %WRAPFUNCTION%(%WRAPARGS%):
         public string PyDocstringParameterTag { get; set; }
         public string PyDocstringStartMarker { get; set; }
         public bool PyDocExportFunctions { get; set; }
-
+        public string FunctionWrappers { get; set; }
         public void AddPyDocLine (StringBuilder sb, string lineTxt = "")
         {
             AddLine(sb, Indentation + PyDocstringStartMarker + lineTxt);
@@ -142,40 +160,56 @@ def %WRAPFUNCTION%(%WRAPARGS%):
 
         public void AddPyDocstringStart(StringBuilder sb)
         {
-            AddLine(sb, Indentation + "\"\"\"");
+            AddNoNewLine(sb, Indentation + "\"\"\"");
         }
 
         public void AddPyDocstringEnd(StringBuilder sb)
         {
-            AddPyDocstringStart(sb);
+            AddLine(sb, Indentation + "\"\"\"");
+        }
+
+        private string PythonType(string apiType)
+        {
+            return TypeMap.ContainsKey(apiType) ? TypeMap[apiType] : "Any";
         }
 
         public bool CreateWrapFuncPyDoc(StringBuilder sb, FuncAndArgs funcAndArgs, bool paramDocs = true)
         {
             /*
-    """
-        :param ptr series: Pointer to ENSEMBLE_FORECAST_TIME_SERIES_PTR
-        :param int item_idx: Item index
-        :param ndarray values: 2-dimensional array of values,
-            1st dimension is lead time, second is ensemble member.
-        :param datetime start: Start datetime for ``values``
-        :param str freq: Frequency for ``values`` 'D' or 'H'.
-    """
+    """[summary]
+
+    Args:
+        simulation ([type]): [description]
+        variableIdentifier ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """    
              */
             var funcDecl = GetTypeAndName(funcAndArgs.Function);
             string funcName = funcDecl.VarName + FunctionNamePostfix;
             AddPyDocstringStart(sb);
-            AddPyDocLine(sb, funcName);
+            sb.Append(funcName + NewLineString);
             AddPyDocLine(sb);
-            AddPyDocLine(sb, funcName + " Wrapper function for " + funcDecl.VarName);
+            AddPyDocLine(sb, funcName + ": generated wrapper function for API function " + funcDecl.VarName);
             AddPyDocLine(sb);
             if (paramDocs)
             {
+                AddPyDocLine(sb, "Args:");
                 var funcArgs = GetFuncArguments(funcAndArgs);
                 for (int i = 0; i < funcArgs.Length; i++)
                 {
                     var v = GetTypeAndName(funcArgs[i]);
-                    AddPyDocLine(sb, PyDocstringParameterTag + " " + v.VarName + " Python type equivalent for C++ type " + v.TypeName);
+                    // AddPyDocLine(sb, PyDocstringParameterTag + "" + v.VarName + " Python type equivalent for C++ type " + v.TypeName);
+                    AddPyDocLine(sb, Indentation + string.Format("{0} ({1}): {2}", v.VarName, PythonType(v.TypeName), v.VarName));
+                }
+                var funcDef = GetTypeAndName(funcAndArgs.Function);
+                bool returnsVal = FunctionReturnsValue(funcDef);
+                if (returnsVal)
+                {
+                    AddPyDocLine(sb);
+                    AddPyDocLine(sb, "Returns:");
+                    AddPyDocLine(sb, Indentation + string.Format("({0}): {1}", PythonType(funcDef.TypeName), "returned result"));
                 }
             }
             if(PyDocExportFunctions)
@@ -207,23 +241,53 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             var funcDecl = GetTypeAndName(funcAndArgs.Function);
             string funcDef = "def " + funcDecl.VarName + FunctionNamePostfix;
             sb.Append(funcDef);
-            bool r = AddFunctionArgs(sb, funcAndArgs, ApiArgToRfunctionArgument);
+            bool r = AddFunctionArgs(sb, funcAndArgs, ApiArgToPyFunctionArgument);
+            sb.Append(" -> " + PythonType(funcDecl.TypeName));
             sb.Append(":");
             return r;
         }
 
-        private void ApiArgToRfunctionArgument(StringBuilder sb, TypeAndName typeAndName)
+        private void ApiArgToPyFunctionArgument(StringBuilder sb, TypeAndName typeAndName)
         {
-            // dynamic runtime type only for py:
-            sb.Append(typeAndName.VarName);
+            sb.Append(typeAndName.VarName + ":" + PythonType(typeAndName.TypeName));
         }
 
         protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
         {
             if (returnsVal)
             {
-                AddBodyLine(sb, "return "+ CreateXptrObjRefFunction + @"(" + ReturnedValueVarname + ", '" + funcDef.TypeName + "')");
+                string s = ("return " + PyWrap(funcDef.TypeName, ReturnedValueVarname));
+                AddBodyLine(sb, s);
+                // AddBodyLine(sb, "return x_res");
             }
+        }
+
+        private string PyWrap(string typename, string varname)
+        {
+            if (IsKnownType(typename)) // known types may include struct pointers with custom conv.
+                return WrapAsPyType(typename, varname);
+            else if (IsPointer(typename)) // otherwise fallback on opaque pointers.
+                return (AsOpaquePtr(typename, varname, true));
+            else
+                return WrapAsPyType(typename, varname);
+        }
+
+        private string WrapAsPyType(string typename, string varname)
+        {
+            if (typename == "double" ||
+                typename == "int" ||
+                typename == "bool")
+                return varname;
+            var c = FindReturnedConverter(typename);
+            if (c != null)
+                return c.Apply(varname);
+            else
+                return varname;
+            //return "TODO_" + typename + "(" + varname + ")";
+        }
+        private string AsOpaquePtr(string typename, string varname = "", bool instance = false) // ModelRunner* becomes   XPtr<ModelRunner>
+        {
+            return CreateXptrObjRefFunction + @"(" + ReturnedValueVarname + ", '" + typename + "')";
         }
     }
 }

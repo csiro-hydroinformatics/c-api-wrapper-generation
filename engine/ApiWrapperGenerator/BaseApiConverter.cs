@@ -24,18 +24,34 @@ namespace ApiWrapperGenerator
             ApiCallOpenParenthesis = true; // a kludge switch to cater for matlab's calllib
         }
 
+
+        /// <summary>
+        /// C pointer, '*'
+        /// </summary>
         public const string CPtr = "*";
 
+        /// <summary>
+        /// Gets/sets the code indentation to use as a standard for generated code
+        /// </summary>
         public string Indentation { get; set; }
         public string TwoIndentations { get { return Indentation + Indentation; } }
         public string ThreeIndentations { get { return Indentation + Indentation + Indentation; } }
 
         private int uniformIndentationCount;
+
+        /// <summary>
+        /// Gets/private sets the uniform indentation to prepend to all generated lines
+        /// </summary>
         protected string UniformIndentation
         {
             get;
             private set;
         }
+
+        /// <summary>
+        /// Gets/sets the number of indentations to prepend to all generated lines
+        /// </summary>
+        /// <value></value>
         public int UniformIndentationCount
         {
             get { return uniformIndentationCount; }
@@ -51,14 +67,34 @@ namespace ApiWrapperGenerator
             }
         }
 
+
+        /// <summary>
+        /// Gets the termination characters for all body statement lines generated, e.g. ';\n'
+        /// </summary>
         public string BodyLineTermination { get { return StatementSep + NewLineString; } }
+
+        /// <summary>
+        /// Gets the indentation characters for all body statement lines generated, e.g. '        '
+        /// </summary>
         public string BodyLineIdentation { get { return UniformIndentation + Indentation; } }
         public string BodyLineOpenFunctionDelimiter { get { return UniformIndentation + FunctionBodyOpenDelimiter + NewLineString; } }
         public string BodyLineCloseFunctionDelimiter { get { return UniformIndentation + FunctionBodyCloseDelimiter + NewLineString; } }
 
+        /// <summary>
+        /// Gets/sets the string opening a function arguments list, typically '('
+        /// </summary>
         public string ArgListOpenDelimiter { get; set; }
+        /// <summary>
+        /// Gets/sets the string closing a function arguments list, typically ')'
+        /// </summary>
         public string ArgListCloseDelimiter { get; set; }
+        /// <summary>
+        /// Gets/sets the string opening a set of statements, e.g. '{' in C++
+        /// </summary>
         public string FunctionBodyOpenDelimiter { get; set; }
+        /// <summary>
+        /// Gets/sets the string closing a set of statements, e.g. '{' in C++
+        /// </summary>
         public string FunctionBodyCloseDelimiter { get; set; }
 
         public string ApiCallPostfix { get; set; }
@@ -66,11 +102,24 @@ namespace ApiWrapperGenerator
 
         public string StatementSep { get; set; }
 
+        /// <summary>
+        /// Gets/sets the name of the function to use in the generated code to wrap an opaque pointer returned by the C API
+        /// </summary>
         public string CreateXptrObjRefFunction { get; set; }
+
+        /// <summary>
+        /// Gets/sets the name of the function to use in the generated code to unwrap a pointer wrapper and access an opaque pointer 
+        /// </summary>
         public string GetXptrFromObjRefFunction { get; set; }
 
+        /// <summary>
+        /// Gets/sets a postfix to append to functions generated, appended to the C API function names.
+        /// </summary>
         public string FunctionNamePostfix { get; set; }
 
+        /// <summary>
+        /// Gets/sets the strings in type names that indicate they are poointers (e.g. '*' and '_PTR' for C macros or type aliases)
+        /// </summary>
         public string[] PointersEndsWithAny { get; set; }
 
         public string NewLineString { get; set; }
@@ -99,6 +148,13 @@ namespace ApiWrapperGenerator
             get { return typeMap; }
             set { typeMap = value; }
         }
+
+        // CharacterVector nodeIds
+        // char** nodeIdsChar = createAnsiStringArray(nodeIds);
+        // freeAnsiStringArray(nodeIdsChar, nodeIds.length());
+        private Dictionary<string, ReturnedValueConversion> returnedValuesConversion = new Dictionary<string, ReturnedValueConversion>();
+
+        private Dictionary<string, ArgConversion> transientArgConversion = new Dictionary<string, ArgConversion>();
 
         protected static bool IsCharPtr(string typename)
         {
@@ -262,7 +318,12 @@ namespace ApiWrapperGenerator
             //transientArgsCleanup = cleanup.ToArray();
             return transientArgs;
         }
-
+        /// <summary>
+        /// Detect in a function signature which arguments need a transient conversion before being passed to the C API call (e.g. string to char*)
+        /// </summary>
+        /// <param name="sb">string builder to populate. Ignored here.</param>
+        /// <param name="funcAndArgs">Definition of the function and its arguments</param>
+        /// <returns></returns>
         protected Dictionary<string, TransientArgumentConversion> FindTransientVariables(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
             string functionArguments = funcAndArgs.Arguments;
@@ -284,7 +345,7 @@ namespace ApiWrapperGenerator
             transientArgs[vname] = t;
         }
 
-        private ArgConversion FindConverter(string tname)
+        protected ArgConversion FindConverter(string tname)
         {
             ArgConversion conv = null;
             if (transientArgConversion.ContainsKey(tname))
@@ -297,7 +358,19 @@ namespace ApiWrapperGenerator
             return conv;
         }
 
-        private ArgConversion matchByRegex(Dictionary<string, ArgConversion> transientArgConversion, string tname)
+        protected ReturnedValueConversion FindReturnedConverter(string tname)
+        {
+            ReturnedValueConversion conv = null;
+            if (returnedValuesConversion.ContainsKey(tname))
+                conv = returnedValuesConversion[tname];
+            else
+            {
+                conv = matchByRegex(returnedValuesConversion, tname);
+            }
+            return conv;
+        }
+
+        private T matchByRegex<T>(Dictionary<string, T> transientArgConversion, string tname)
         {
             foreach (var converter in transientArgConversion)
             {
@@ -309,17 +382,24 @@ namespace ApiWrapperGenerator
                         return converter.Value;
                 }
             }
-            return null;
+            return default(T);
         }
 
-        // CharacterVector nodeIds
-        // char** nodeIdsChar = createAnsiStringArray(nodeIds);
-        // freeAnsiStringArray(nodeIdsChar, nodeIds.length());
-        private Dictionary<string, ArgConversion> transientArgConversion = new Dictionary<string, ArgConversion>();
-
+        /// <summary>
+        /// Sets a definition to convert bindings' arguments into types to call the API
+        /// </summary>
+        /// <param name="cArgType">Type name of the API (C API typically)</param>
+        /// <param name="variablePostfix">Postfix to append to the transient argument variable</param>
+        /// <param name="setupTemplate">Template code specifying how to create the transient argument</param>
+        /// <param name="cleanupTemplate">Template code specifying how to dispose of the transient argument after the API call</param>
         public void SetTransientArgConversion(string cArgType, string variablePostfix, string setupTemplate, string cleanupTemplate)
         {
             transientArgConversion[cArgType] = new ArgConversion(variablePostfix, setupTemplate, cleanupTemplate);
+        }
+
+        public void SetReturnedValueConversion(string cArgType, string conversionTemplate)
+        {
+            returnedValuesConversion[cArgType] = new ReturnedValueConversion{ConversionTemplate = conversionTemplate};
         }
 
         protected bool createWrappingFunctionSignature(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argumentConverterFunction, string functionNamePostfix)
@@ -414,6 +494,11 @@ namespace ApiWrapperGenerator
             if (!string.IsNullOrEmpty(statement))
                 sb.Append(UniformIndentation + statement + NewLineString);
         }
+        protected void AddNoNewLine(StringBuilder sb, string s)
+        {
+            if (!string.IsNullOrEmpty(s))
+                sb.Append(UniformIndentation + s);
+        }
 
         private void AddIfExistingStatement(StringBuilder sb, string statement)
         {
@@ -443,6 +528,12 @@ namespace ApiWrapperGenerator
             sb.Append(ApiCallPrefix + funcDef.VarName + ApiCallPostfix);
         }
 
+        /// <summary>
+        /// Create the line for a returned value after a C API function call.
+        /// </summary>
+        /// <param name="sb"></param>
+        /// <param name="funcDef"></param>
+        /// <param name="returnsVal"></param>
         protected abstract void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal);
 
         public string ReturnedValueDeclarationKeyword = "";
