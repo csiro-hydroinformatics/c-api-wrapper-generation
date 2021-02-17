@@ -136,6 +136,7 @@ R CMD INSTALL rClr_0.9.0.tar.gz
 #### Building our codegen engine
 
 ```sh
+# cd ~/src/github_jm/c-api-wrapper-generation
 cd engine/ApiWrapperGenerator
 dotnet restore ApiWrapperGenerator.sln
 ```

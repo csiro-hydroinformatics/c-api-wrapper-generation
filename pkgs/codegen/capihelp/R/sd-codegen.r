@@ -200,7 +200,9 @@ extract_cffi_cdefs <- function(preprocessed_cpp_file_lines, pattern_start_struct
   a <- preprocessed_cpp_file_lines
 
   struct_start_line <- (which(stringr::str_detect(a, pattern_start_structs)))[1]
-  extern_c_start_line <- (which(stringr::str_detect(a, extern_c_start_match)))[1]
+  extern_c_start_lines <- which(stringr::str_detect(a, extern_c_start_match))
+  # Take the last match for start of extern C as there may have been several depending on imported header files
+  extern_c_start_line <- extern_c_start_lines[length(extern_c_start_lines)]
 
   end_brackets <- which(stringr::str_detect(a, extern_c_end_match))
   extern_c_end_line <- (end_brackets[end_brackets > extern_c_start_line])[1]
@@ -229,6 +231,9 @@ extract_cffi_cdefs <- function(preprocessed_cpp_file_lines, pattern_start_struct
   # Why did I have this. Probably superflous:
   # funcs <- paste(funcs, collapse= " ")
   # funcs <- stringr::str_replace_all(funcs, ' *; *', ';\n')
+
+  # HACK? make sure define size_t.
+  structs <- c("typedef unsigned long int size_t;", structs)
 
   return(list(structs=structs,funcs=funcs))
 }

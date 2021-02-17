@@ -548,12 +548,12 @@ namespace ApiWrapperGenerator
 
         protected void TransientArgsCreation(StringBuilder sb, TypeAndName typeAndName)
         {
-            sb.Append(CreateTransientApiArgument(typeAndName));
+            sb.Append(BodyLineIdentation + CreateTransientApiArgument(typeAndName));
         }
 
         protected void TransientArgsCleanup(StringBuilder sb, TypeAndName typeAndName)
         {
-            sb.Append(CleanupTransientApiArgument(typeAndName));
+            sb.Append(BodyLineIdentation + CleanupTransientApiArgument(typeAndName));
         }
 
         public string CreateTransientApiArgument(string apiArgument)
