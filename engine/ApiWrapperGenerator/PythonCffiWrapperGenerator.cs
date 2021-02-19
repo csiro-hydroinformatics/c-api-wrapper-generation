@@ -102,7 +102,7 @@ namespace ApiWrapperGenerator
 def %WRAPFUNCTION%(%WRAPARGS%):
 %WRAPFUNCTIONDOCSTRING%
 %TRANSARGS%
-    result = %FUNCTION%(%WRAPARGS%)
+    result = %FUNCTION%(%ARGS%)
     return "+ CreateXptrObjRefFunction + @"(result,'dummytype')
 "
             };
