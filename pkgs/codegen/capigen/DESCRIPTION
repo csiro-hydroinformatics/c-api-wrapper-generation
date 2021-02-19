@@ -1,0 +1,25 @@
+Package: capigen
+Type: Package
+Title: Generate bindings for C Application Programming Interfaces
+Version: 0.6.5
+Date: 2020-02-25
+Authors@R: c( person("Jean-Michel", "Perraud", email =
+    "jean-michel.perraud@csiro.au", role = c("aut", "cre")))
+Author: Jean-Michel Perraud [aut, cre]
+Maintainer: J-M <jean-michel.perraud@csiro.au>
+Description: A package to facilitate code generation to surface a C API
+License: GPL-2
+LazyLoad: yes
+URL: https://bitbucket.csiro.au/users/per202/repos/c-api-bindings/browse
+Depends:
+    R (>= 3.0.2),
+    rClr
+Imports:
+    knitr,
+    devtools,
+    roxygen2,
+    Rcpp,
+    msvs,
+    stringr
+VignetteBuilder: knitr
+RoxygenNote: 6.1.99.9001
