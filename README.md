@@ -143,6 +143,7 @@ dotnet restore ApiWrapperGenerator.sln
 
 ```bash
 dotnet build --configuration Release --no-restore ApiWrapperGenerator.sln
+dotnet build --configuration Debug --no-restore ApiWrapperGenerator.sln
 
 cd ../TestApiWrapperGenerator/
 dotnet test TestApiWrapperGenerator.csproj 
