@@ -145,7 +145,10 @@ def %WRAPFUNCTION%(%WRAPARGS%):
 
             TransientArgumentConversion t = FindTransientArgConversion(typename, varname);
             if (t != null)
-                sb.Append(t.LocalVarname); // Call with the transient variable name e.g. argname_char_pp
+            {
+                // All transient arguments in python Cffi will be wrapped in a class, to keep alive all native resources; we need to pass the cffi pointer however
+                sb.Append(t.LocalVarname + ".ptr"); // Call with the transient variable name e.g. argname_char_pp
+            }
             // If this is a pointer, take precedence on known types.\
             // else if (IsPointer(typename)) // HYPERCUBE_PTR
             //     ConvertIntPtrToCapi(sb, typename, varname);
