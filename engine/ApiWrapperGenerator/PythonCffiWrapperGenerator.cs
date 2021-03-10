@@ -104,10 +104,10 @@ namespace ApiWrapperGenerator
 def %WRAPFUNCTION%(%WRAPARGS%):
 %WRAPFUNCTIONDOCSTRING%
 %TRANSARGS%
-    size = marshal.new_int_array(1)
+    size = marshal.new_int_scalar_ptr()
     values = %FUNCTION%(%ARGS%, size)
 %CLEANTRANSARGS%
-    result = " + convertingFunc + @"(values, size, True)
+    result = " + convertingFunc + @"(values, size[0], True)
     return result
 "
             };
@@ -147,7 +147,9 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             if (t != null)
             {
                 // All transient arguments in python Cffi will be wrapped in a class, to keep alive all native resources; we need to pass the cffi pointer however
-                sb.Append(t.LocalVarname + ".ptr"); // Call with the transient variable name e.g. argname_char_pp
+                // TODO: generalise
+                string apiCallUnwrap = t.IsPointer ? ".ptr" : ".obj";
+                sb.Append(t.LocalVarname + apiCallUnwrap); // Call with the transient variable name e.g. argname_char_pp
             }
             // If this is a pointer, take precedence on known types.\
             // else if (IsPointer(typename)) // HYPERCUBE_PTR
