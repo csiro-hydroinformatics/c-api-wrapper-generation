@@ -2,6 +2,8 @@
 
 [![license](http://img.shields.io/badge/license-GPLv3-red.svg)](https://raw.githubusercontent.com/csiro-hydroinformatics/c-api-wrapper-generation/master/LICENSE)
 ![status](https://img.shields.io/badge/status-beta-orange.svg)
+[![DOI](https://zenodo.org/badge/34026446.svg)](https://zenodo.org/badge/latestdoi/34026446)
+
 
 From a C API with functions such as:
 
