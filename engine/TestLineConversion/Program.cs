@@ -85,10 +85,10 @@ namespace TestLineConversion
         private static void TestMatlabWrpGen(string[] args)
         {
             var gen = new MatlabApiWrapperGenerator();
-            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
             ProcessTestLine(args, gen);
+            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
         }
-
+        
         private static void TestPyWrpGen(string[] args)
         {
             var gen = new PythonCffiWrapperGenerator();
