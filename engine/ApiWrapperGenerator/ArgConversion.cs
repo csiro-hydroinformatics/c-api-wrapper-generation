@@ -18,6 +18,9 @@ namespace ApiWrapperGenerator
         /// Statements disposing of the local variable prior to the API call
         /// </summary>
         public string LocalVarCleanup;
+
+        public bool IsPointer;
+
     }
 
     public abstract class BaseValueConversion
@@ -62,6 +65,8 @@ namespace ApiWrapperGenerator
         /// </summary>
         string CleanupTemplate;
 
+        public bool IsPointer;
+
         public TransientArgumentConversion Apply(string variableName)
         {
             return new TransientArgumentConversion()
@@ -69,15 +74,17 @@ namespace ApiWrapperGenerator
                 ApiVarname = variableName,
                 LocalVarname = GetTransientVarname(variableName),
                 LocalVarSetup = GetSetup(variableName),
-                LocalVarCleanup = GetCleanup(variableName)
+                LocalVarCleanup = GetCleanup(variableName),
+                IsPointer = this.IsPointer
             };
         }
 
-        public ArgConversion(string variablePostfix, string setupTemplate, string cleanupTemplate)
+        public ArgConversion(string variablePostfix, string setupTemplate, string cleanupTemplate, bool isPointer)
         {
             VariablePostfix = variablePostfix;
             SetupTemplate = setupTemplate;
             CleanupTemplate = cleanupTemplate;
+            IsPointer = isPointer;
         }
 
         public string GetSetup(string vname)

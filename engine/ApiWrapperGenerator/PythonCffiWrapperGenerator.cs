@@ -77,15 +77,16 @@ namespace ApiWrapperGenerator
 
         public CustomFunctionWrapperImpl ReturnsCharPtrPtrWrapper()
         {
-            return ReturnsVectorWrapper(StringHelper.ReturnsCharPP);
+            return ReturnsVectorWrapper(StringHelper.ReturnsCharPP, "char**", "List", "charp_array_to_py");
         }
 
         public CustomFunctionWrapperImpl ReturnsDoublePtrWrapper()
         {
-            return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr);
+            return ReturnsVectorWrapper(StringHelper.ReturnsDoublePtr, "double**", "List", "numeric_matrix_to_py");
         }
 
-        public CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun)
+        public CustomFunctionWrapperImpl ReturnsVectorWrapper(System.Func<string, bool> matchFun, string apitype, 
+            string pytype, string convertingFunc)
         {
             CustomFunctionWrapperImpl cw = new CustomFunctionWrapperImpl()
             {
@@ -94,6 +95,7 @@ namespace ApiWrapperGenerator
                 ApiArgToWrappingLang = ApiArgToPyFunctionArgument,
                 ApiCallArgument = this.ApiCallArgument,
                 TransientArgsCreation = this.TransientArgsCreation,
+                TransientArgsCleanup = TransientArgsCleanup,
                 FunctionNamePostfix = this.FunctionNamePostfix,
                 CalledFunctionNamePrefix = this.ApiCallPrefix,
                 CalledFunctionNamePostfix = this.ApiCallPostfix,
@@ -102,8 +104,11 @@ namespace ApiWrapperGenerator
 def %WRAPFUNCTION%(%WRAPARGS%):
 %WRAPFUNCTIONDOCSTRING%
 %TRANSARGS%
-    result = %FUNCTION%(%ARGS%)
-    return "+ CreateXptrObjRefFunction + @"(result,'dummytype')
+    size = marshal.new_int_scalar_ptr()
+    values = %FUNCTION%(%ARGS%, size)
+%CLEANTRANSARGS%
+    result = " + convertingFunc + @"(values, size[0], True)
+    return result
 "
             };
             return cw;
@@ -132,19 +137,29 @@ def %WRAPFUNCTION%(%WRAPARGS%):
 
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
         {
-//"""
-//    :param str element_name
-//    :param bool select_network_above_element
-//    :param bool include_element_in_selection
-//    :param bool invert_selection
-//    :param list termination_elements: List of str.
-//"""
-//termination_elems_c = [FFI_.new("char[]", as_bytes(x)) for x in termination_elements]
-//return LIB.SubsetModel(ptr, element_name, select_network_above_element,
-//                        include_element_in_selection, invert_selection,
-//                        termination_elems_c, len(termination_elements))
-            sb.Append(typeAndName.VarName);
+            PythonApiToCApiType(sb, typeAndName.TypeName, typeAndName.VarName);
         }
+
+        private void PythonApiToCApiType(StringBuilder sb, string typename, string varname)
+        {
+
+            TransientArgumentConversion t = FindTransientArgConversion(typename, varname);
+            if (t != null)
+            {
+                // All transient arguments in python Cffi will be wrapped in a class, to keep alive all native resources; we need to pass the cffi pointer however
+                // TODO: generalise
+                string apiCallUnwrap = t.IsPointer ? ".ptr" : ".obj";
+                sb.Append(t.LocalVarname + apiCallUnwrap); // Call with the transient variable name e.g. argname_char_pp
+            }
+            // If this is a pointer, take precedence on known types.\
+            // else if (IsPointer(typename)) // HYPERCUBE_PTR
+            //     ConvertIntPtrToCapi(sb, typename, varname);
+            // else if (IsKnownType(typename))
+            //     sb.Append(AddAs(typename, varname));
+            else
+                sb.Append(varname);
+        }
+
 
         public bool GeneratePyDocstringDoc { get; set; }
         public string PyDocstringDocPostamble { get; set; }

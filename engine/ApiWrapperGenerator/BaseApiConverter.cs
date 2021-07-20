@@ -394,7 +394,7 @@ namespace ApiWrapperGenerator
         /// <param name="cleanupTemplate">Template code specifying how to dispose of the transient argument after the API call</param>
         public void SetTransientArgConversion(string cArgType, string variablePostfix, string setupTemplate, string cleanupTemplate)
         {
-            transientArgConversion[cArgType] = new ArgConversion(variablePostfix, setupTemplate, cleanupTemplate);
+            transientArgConversion[cArgType] = new ArgConversion(variablePostfix, setupTemplate, cleanupTemplate, this.IsPointer(cArgType));
         }
 
         public void SetReturnedValueConversion(string cArgType, string conversionTemplate)

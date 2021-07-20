@@ -108,11 +108,12 @@ namespace ApiWrapperGenerator
             var typeAndName = StringHelper.GetVariableDeclaration(arg);
             if (typeAndName.Unexpected) return false;
             string vname = typeAndName.VarName;
-            if (transientArgs != null && transientArgs.ContainsKey(vname))
-            {
-                sb.Append(transientArgs[vname].LocalVarname);
-                return true;
-            }
+            // No, it should be up to the caller to deal with the specificities of the call to check this, and add any additional particulars. At least had to do that for Python. 
+            // if (transientArgs != null && transientArgs.ContainsKey(vname))
+            // {
+            //     sb.Append(transientArgs[vname].LocalVarname);
+            //     return true;
+            // }
             return ParseTypeAndName(sb, arg, argFunc);
         }
 

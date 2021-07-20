@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Collections.Generic;
 
 namespace ApiWrapperGenerator
 {
@@ -144,7 +145,8 @@ namespace ApiWrapperGenerator
             StringBuilder sb = new StringBuilder();
             var args = StringHelper.GetFunctionArguments(funDef);
             int end = args.Length - this.RemovedLastArgs - offsetLength;
-            StringHelper.appendArgs(sb, argFunc, null, args, 0, end, sep);
+            var transientArgs = new Dictionary<string, TransientArgumentConversion>();
+            StringHelper.appendArgs(sb, argFunc, transientArgs, args, 0, end, sep);
             if (appendSeparator && (end > start))
                 AppendSeparatorIfNeeded(sep, sb);
             return sb.ToString();
