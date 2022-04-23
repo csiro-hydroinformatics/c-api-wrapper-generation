@@ -4,7 +4,6 @@
 ![status](https://img.shields.io/badge/status-beta-orange.svg)
 [![DOI](https://zenodo.org/badge/34026446.svg)](https://zenodo.org/badge/latestdoi/34026446)
 
-
 From a C API with functions such as:
 
 ```c++
@@ -15,7 +14,7 @@ Generate the glue code to surface it to R, Python, Matlab, .NET, etc.
 
 ## Background
 
-Around 2014 I needed in a project to (re)generate bindings for C++ scientific research modelling code _via a C API_ for at least R, Python, Matlab and C#. A manual approach was not a sustainable option. I first tried to apply or adapt a few of the many third party options (incl. some heavyweights in the wrapping field such as SWIG). I ended up with more difficulties than I bargained for, and despite my reluctance enacted plan B, a custom solution. 
+Around 2014 I needed in a project to (re)generate bindings for C++ scientific research modelling code _via a C API_ for at least R, Python, Matlab and C#. A manual approach was not a sustainable option. I first tried to apply or adapt a few of the many third party options (incl. some heavyweights in the wrapping field such as SWIG). I ended up with more difficulties than I bargained for, and despite my reluctance enacted plan B, a custom solution.
 
 It may, or may not, suit your needs. It is used on an ongoing basis for quite large APIs with hundreds of functions. I hope it can help alleviate your language interop glue code maintenance.
 
@@ -39,7 +38,7 @@ extern double GetParameterValue(void* hypercubeParameterizer, const char* variab
 extern void DisposeSharedPointer(void* ptr);
 ```
 
-This present code generation tool was created to generate bindings around native libraries with a C API. 
+This present code generation tool was created to generate bindings around native libraries with a C API.
 
 Say you want to surface this API in R using [Rcpp](http://www.rcpp.org/). There are plenty of design options of course, but chances are you will need some boilerplate `C++` code with Rcpp classes (`XPtr`, `CharacterVector`, etc.) looking like:
 
@@ -73,22 +72,23 @@ CreateHypercubeParameterizer_R <- function(strategy) {
 
 ## Getting started
 
-_Note to self; consider using `F#` for scripting rather than using R and .NET._
+### Windows
 
-### Windows 
+From the development command line prompt of visual studio (or a compiler toolchain):
 
 ```bat
-MSBuild %github_dir%\c-api-wrapper-generation\ApiWrapperGenerator\ApiWrapperGenerator.sln /t:Build /p:Configuration=Debug
+MSBuild c:\src\c-api-wrapper-generation\ApiWrapperGenerator\ApiWrapperGenerator.sln /t:Build /p:Configuration=Debug
 ```
 
 ### Linux
 
-
 #### prerequisites
 
-Check dotnet is available with `which dotnet`, and `dotnet --info` should return on of the 2.x runtimes.
+Check dotnet is available with `which dotnet`, and `dotnet --info`.
 
-If need be follow the [Manual Install](https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian#manual-install). There are other ways to obtain dotnet.
+As of April 2022, dotnet can be installed on Linux Debian using debian package repositories managed by Microsoft. This is the prefered way, and seems to work fine for generating code from F# scripts
+
+_Possibly deprecated_: if need be follow the [Manual Install](https://docs.microsoft.com/en-us/dotnet/core/install/linux-debian#manual-install). There are other ways to obtain dotnet.
 
 `cd ~/Downloads` `ls dotnet*`
 
@@ -117,9 +117,11 @@ export DOTNET_ROOT=$HOME/dotnet
 export PATH=$PATH:$HOME/dotnet
 ```
 
-rClr:
+#### prerequisites for capigen
 
-```
+If you want to generate code from the R package `capigen`, you need rClr. This may be deprecated as of April 2022.
+
+```sh
 sudo apt install mono-xbuild
 sudo apt install libmono-2.0-dev
 sudo apt install msbuild

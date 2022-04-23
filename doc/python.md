@@ -6,7 +6,7 @@
 
 ```r
 library(capigen)
-load_wrapper_gen_lib('c:/src/github_jm/rcpp-wrapper-generation')
+load_wrapper_gen_lib('c:/src/github_jm/c-api-wrapper-generation')
 moirai_src_path <- "C:/src/github_jm/moirai"
 
 moirai_test_api_headerfile <- file.path(moirai_src_path, "tests/moirai_test_lib/c_interop_api.h")
