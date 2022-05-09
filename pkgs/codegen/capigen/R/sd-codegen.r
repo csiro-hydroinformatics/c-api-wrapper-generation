@@ -134,13 +134,13 @@ create_rcpp_generator_base <- function(prepend_header=default_rcppgen_header_pre
 
   rcpp_cpp_gen <- rClr::clrNew('ApiWrapperGenerator.RcppGlueWrapperGenerator')
   # clrGetProperties(rcpp_cpp_gen)
-  rClr::clrSet (rcpp_cpp_gen, 'OpaquePointers', TRUE)
-  rClr::clrSet (rcpp_cpp_gen, 'OpaquePointerClassName', 'opaque_pointer_handle')
-  rClr::clrSet (rcpp_cpp_gen, 'CallGetMethod', '->get()')
-  rClr::clrSet (rcpp_cpp_gen, 'AddRcppExport', TRUE)
-  rClr::clrSet (rcpp_cpp_gen, 'DeclarationOnly', FALSE)
-  rClr::clrSet (rcpp_cpp_gen, 'FunctionNamePostfix', '_Rcpp')
-  rClr::clrSet (rcpp_cpp_gen, 'PrependOutputFile', prepend_header)
+  rClr::clrSet(rcpp_cpp_gen, 'OpaquePointers', TRUE)
+  rClr::clrSet(rcpp_cpp_gen, 'OpaquePointerClassName', 'opaque_pointer_handle')
+  rClr::clrSet(rcpp_cpp_gen, 'CallGetMethod', '->get()')
+  rClr::clrSet(rcpp_cpp_gen, 'AddRcppExport', TRUE)
+  rClr::clrSet(rcpp_cpp_gen, 'DeclarationOnly', FALSE)
+  rClr::clrSet(rcpp_cpp_gen, 'FunctionNamePostfix', '_Rcpp')
+  rClr::clrSet(rcpp_cpp_gen, 'PrependOutputFile', prepend_header)
   
   rcpp_cpp_gen <- configure_cpp_typemap(rcpp_cpp_gen, convert_numerics=TRUE)
   set_wrapper_type_map(rcpp_cpp_gen, 'MarshaledDateTime', 'Rcpp::Datetime')
@@ -277,10 +277,10 @@ generate_swift_cpp_api <- function(swiftSrcPath='', prepend_impl = default_cppge
 
   cppGen <- rClr::clrNew('ApiWrapperGenerator.CppApiWrapperGenerator')
   # clrGetProperties(cppGen)
-  # rClr::clrSet (cppGen, 'OpaquePointers', TRUE)
-  rClr::clrSet (cppGen, 'DeclarationOnly', FALSE)
-  rClr::clrSet (cppGen, 'FunctionNamePostfix', '_cpp')
-  rClr::clrSet (cppGen, 'PrependOutputFile', prepend_impl)
+  # rClr::clrSet(cppGen, 'OpaquePointers', TRUE)
+  rClr::clrSet(cppGen, 'DeclarationOnly', FALSE)
+  rClr::clrSet(cppGen, 'FunctionNamePostfix', '_cpp')
+  rClr::clrSet(cppGen, 'PrependOutputFile', prepend_impl)
   
   cppGen <- configure_cpp_typemap(cppGen)
 
@@ -301,8 +301,8 @@ generate_swift_cpp_api <- function(swiftSrcPath='', prepend_impl = default_cppge
   
   generate_wrapper_code(gen, infile, outfile_cpp)
 
-  rClr::clrSet (cppGen, 'DeclarationOnly', TRUE)
-  rClr::clrSet (cppGen, 'PrependOutputFile', prepend_header)
+  rClr::clrSet(cppGen, 'DeclarationOnly', TRUE)
+  rClr::clrSet(cppGen, 'PrependOutputFile', prepend_header)
   generate_wrapper_code(gen, infile, outfile_h)
 }
 
@@ -320,9 +320,9 @@ generate_swift_csharp_api <- function(swiftSrcPath='', prepend_impl = default_cp
 
   csConv <- rClr::clrNew('ApiWrapperGenerator.CsharpApiWrapperGenerator')
   # clrGetProperties(csConv)
-  # rClr::clrSet (csConv, 'OpaquePointers', TRUE)
-  rClr::clrSet (csConv, 'FunctionNamePostfix', '_cs')
-  rClr::clrSet (csConv, 'PrependOutputFile', prepend_impl)
+  # rClr::clrSet(csConv, 'OpaquePointers', TRUE)
+  rClr::clrSet(csConv, 'FunctionNamePostfix', '_cs')
+  rClr::clrSet(csConv, 'PrependOutputFile', prepend_impl)
   
   csConv <- configure_cpp_typemap(csConv)  
   api_filter <- create_swift_api_filter()
@@ -341,11 +341,11 @@ generate_swift_csharp_api <- function(swiftSrcPath='', prepend_impl = default_cp
 create_xptrwrap_generator <- function(prepend_header=default_xptr_wrapper_prepend()) {
   conv <- rClr::clrNew('ApiWrapperGenerator.RXptrWrapperGenerator')
   # clrGetProperties(conv)
-  rClr::clrSet (conv, 'FunctionNamePostfix', '_R') 
-  rClr::clrSet (conv, 'ApiCallPostfix', '_Rcpp') 
-  rClr::clrSet (conv, 'GenerateRoxygenDoc', TRUE) 
-  # rClr::clrSet (conv, 'RoxygenDocPostamble', "#' @export") 
-  rClr::clrSet (conv, 'PrependOutputFile', prepend_header) 
+  rClr::clrSet(conv, 'FunctionNamePostfix', '_R') 
+  rClr::clrSet(conv, 'ApiCallPostfix', '_Rcpp') 
+  rClr::clrSet(conv, 'GenerateRoxygenDoc', TRUE) 
+  # rClr::clrSet(conv, 'RoxygenDocPostamble', "#' @export") 
+  rClr::clrSet(conv, 'PrependOutputFile', prepend_header) 
   
   rClr::clrCall(conv, 'SetTransientArgConversion', '.*_PTR'  , '_xptr', 'C_ARGNAME <- cinterop::getExternalXptr(RCPP_ARGNAME)', '')  
   rClr::clrCall(conv, 'ClearCustomWrappers')
@@ -355,11 +355,11 @@ create_xptrwrap_generator <- function(prepend_header=default_xptr_wrapper_prepen
 create_matlabwrap_generator <- function(prepend_header=default_matlab_wrapper_prepend()) {
   conv <- rClr::clrNew('ApiWrapperGenerator.MatlabApiWrapperGenerator')
   # clrGetProperties(conv)
-  rClr::clrSet (conv, 'FunctionNamePostfix', '_m') 
-  rClr::clrSet (conv, 'ApiCallPostfix', '') 
-  # rClr::clrSet (conv, 'GenerateRoxygenDoc', TRUE) 
-  # rClr::clrSet (conv, 'RoxygenDocPostamble', "#' @export") 
-  rClr::clrSet (conv, 'PrependOutputFile', prepend_header) 
+  rClr::clrSet(conv, 'FunctionNamePostfix', '_m') 
+  rClr::clrSet(conv, 'ApiCallPostfix', '') 
+  # rClr::clrSet(conv, 'GenerateRoxygenDoc', TRUE) 
+  # rClr::clrSet(conv, 'RoxygenDocPostamble', "#' @export") 
+  rClr::clrSet(conv, 'PrependOutputFile', prepend_header) 
   # rClr::clrCall(conv, 'SetTransientArgConversion', '.*_PTR'  , '_xptr', 'C_ARGNAME <- cinterop::getExternalXptr(RCPP_ARGNAME)', '')  
   rClr::clrCall(conv, 'ClearCustomWrappers')
   return(conv)
@@ -429,8 +429,8 @@ generate_xptr_wrappers_from_rcppfunc <- function(swiftSrcPath='', prepend_header
   outfile =file.path( pkg_path_swiftr(swiftSrcPath), 'R/swift-pkg-wrap-generated.r')
 ) {
   conv <- create_xptrwrap_generator(prepend_header);
-  rClr::clrSet (conv, 'ApiCallPostfix', '') 
-  # rClr::clrSet (conv, 'RoxygenDocPostamble', "#' @export") 
+  rClr::clrSet(conv, 'ApiCallPostfix', '') 
+  # rClr::clrSet(conv, 'RoxygenDocPostamble', "#' @export") 
   rClr::clrCall(conv, 'SetTransientArgConversion', 'XPtr<OpaquePointer>', '_xptr', 'C_ARGNAME <- cinterop::getExternalXptr(RCPP_ARGNAME)', '')  
     
   api_filter <- create_rcpp_exported_func()
@@ -597,15 +597,15 @@ generate_py_cffi_wrappers <- function(
 create_py_cffi_generator_base <- function(prepend_header=default_py_cffi_wrapper_prepend(), cffi_obj_name='nativelib') {
   conv <- rClr::clrNew('ApiWrapperGenerator.PythonCffiWrapperGenerator')
   # clrGetProperties(conv)
-  rClr::clrSet (conv, 'FunctionNamePostfix', '_py') 
-  rClr::clrSet (conv, 'ApiCallPrefix', paste0(cffi_obj_name, ".")) 
-  rClr::clrSet (conv, 'ApiCallPostfix', '') 
-  rClr::clrSet (conv, 'GeneratePyDocstringDoc', TRUE) 
-  # rClr::clrSet (conv, 'RoxygenDocPostamble', "#' @export") 
-  rClr::clrSet (conv, 'PrependOutputFile', prepend_header) 
+  rClr::clrSet(conv, 'FunctionNamePostfix', '_py') 
+  rClr::clrSet(conv, 'ApiCallPrefix', paste0(cffi_obj_name, ".")) 
+  rClr::clrSet(conv, 'ApiCallPostfix', '') 
+  rClr::clrSet(conv, 'GeneratePyDocstringDoc', TRUE) 
+  # rClr::clrSet(conv, 'RoxygenDocPostamble', "#' @export") 
+  rClr::clrSet(conv, 'PrependOutputFile', prepend_header) 
 
-  rClr::clrSet (conv, 'CreateXptrObjRefFunction', 'custom_wrap_cffi_native_handle')
-  rClr::clrSet (conv, 'GetXptrFromObjRefFunction', 'unwrap_cffi_native_handle')
+  rClr::clrSet(conv, 'CreateXptrObjRefFunction', 'custom_wrap_cffi_native_handle')
+  rClr::clrSet(conv, 'GetXptrFromObjRefFunction', 'unwrap_cffi_native_handle')
 
 
   # HACK
@@ -617,7 +617,7 @@ def custom_wrap_cffi_native_handle(obj, type_id="", release_native = None):
 
 '
   )
-  rClr::clrSet (conv, 'PrependOutputFile', prepend_header_custom) 
+  rClr::clrSet(conv, 'PrependOutputFile', prepend_header_custom) 
   
   rClr::clrCall(conv, 'SetTransientArgConversion', '.*_PTR'  , '_xptr', 'C_ARGNAME = unwrap_cffi_native_handle(RCPP_ARGNAME)', '')  
   rClr::clrCall(conv, 'ClearCustomWrappers')

@@ -8,7 +8,7 @@ See /home/per202/src/csiro/stash/per202/datatypes/bindings/python for a use case
 library(rClr)
 library(devtools)
 load_all('c:/src/csiro/stash/c-api-bindings/codegen/capigen')
-load_wrapper_gen_lib('c:/src/github_jm/rcpp-wrapper-generation')
+load_wrapper_gen_lib('c:/src/github_jm/c-api-wrapper-generation')
 
 
 api_filter <- create_api_filter(export_modifier_pattern='TEST_API')
@@ -30,7 +30,7 @@ C:\src\csiro\stash\qpp\bindings\matlab\create_simple_header_files.r
 library(rClr)
 library(devtools)
 load_all('c:/src/csiro/stash/c-api-bindings/codegen/capigen')
-load_wrapper_gen_lib('c:/src/github_jm/rcpp-wrapper-generation')
+load_wrapper_gen_lib('c:/src/github_jm/c-api-wrapper-generation')
 
 api_filter <- create_api_filter(export_modifier_pattern='QPP_API')
 # rClr::clrSet(api_filter, 'ContainsNone', common_exclude_api_functions())

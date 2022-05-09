@@ -152,7 +152,7 @@ find_uchronia_src_path <- function() {
 #' @export
 #' @import capihelp
 load_wrapper_gen_lib <- function(wgenDir='') {
-  if(wgenDir=='') wgenDir <- file.path(find_env_github_root_path(), 'rcpp-wrapper-generation')
+  if(wgenDir=='') wgenDir <- file.path(find_env_github_root_path(), 'c-api-wrapper-generation')
   wgenDir <- check_dir_exists(wgenDir)
   wgenDll <- file.path(wgenDir, 'ApiWrapperGenerator/bin/Debug/netstandard2.0/ApiWrapperGenerator.dll')
   if(!file.exists(wgenDll)) 
@@ -161,7 +161,7 @@ load_wrapper_gen_lib <- function(wgenDir='') {
     msg <- (paste(msg,'In a DOS command prompt try something like:\n'))
     msg <- (paste(msg,'   cd F:\\src\\csiro\\stash\\per202\\swift\n'))
     msg <- (paste(msg,'   .\\Externals\\config-utils\\msvs\\setup_vcpp.cmd\n'))
-    msg <- (paste(msg,'   cd F:\\src\\csiro\\stash\\per202\\swift\\Externals\\rcpp-wrapper-generation\\ApiWrapperGenerator\n'))
+    msg <- (paste(msg,'   cd F:\\src\\csiro\\stash\\per202\\swift\\Externals\\c-api-wrapper-generation\\ApiWrapperGenerator\n'))
     msg <- (paste(msg,'   msbuild ApiWrapperGenerator.csproj /p:Configuration=Debug /p:Platform=AnyCPU\n'))
     stop(msg)
   }
