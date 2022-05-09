@@ -8,6 +8,8 @@ namespace ApiWrapperGenerator
     {
         public static string NewLineString = "\n";
 
+        public static string EnvNewLine = Environment.NewLine;
+
         public static string Concat(string[] elemts, int start, int count, string sep = " ")
         {
             StringBuilder sb = new StringBuilder();

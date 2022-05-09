@@ -35,7 +35,7 @@ namespace ApiWrapperGenerator
             OpaquePointerClassName = "opaque_pointer_handle"; // moirai
             CallGetMethod = "->get()";
 
-            PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
+            PrependOutputFile = string.Format("// This file was GENERATED{0}//Do NOT modify it manually, as you are very likely to lose work{0}{0}", EnvNewLine);
 
         }
 
@@ -147,9 +147,9 @@ namespace ApiWrapperGenerator
         {
             if (returnsVal)
             {
-                sb.Append("    auto x = " + CppWrap(funcDef.TypeName, ReturnedValueVarname) + StatementSep + NewLineString);
+                sb.Append("    auto x = " + CppWrap(funcDef.TypeName, ReturnedValueVarname) + StatementSep + EnvNewLine);
                 if (funcDef.TypeName == "char*")
-                    sb.Append("    DeleteAnsiString(" + ReturnedValueVarname + ");" + NewLineString);
+                    sb.Append("    DeleteAnsiString(" + ReturnedValueVarname + ");" + EnvNewLine);
                 sb.Append("    return x;");
             }
         }

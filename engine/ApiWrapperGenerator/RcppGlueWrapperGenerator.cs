@@ -13,7 +13,7 @@ namespace ApiWrapperGenerator
             OpaquePointers = false;
             DeclarationOnly = false;
             AddRcppExport = true;
-            NewLineString = "\n";
+            // NewLineString = "\n";
             ReturnedValueDeclarationKeyword = "auto";
 
             SetTypeMap("void", "void");
@@ -34,7 +34,7 @@ namespace ApiWrapperGenerator
             SetTypeMap("const double*", "NumericVector");
 
             OpaquePointerClassName = "OpaquePointer";
-            PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
+            PrependOutputFile = string.Format("// This file was GENERATED{0}//Do NOT modify it manually, as you are very likely to lose work{0}{0}", EnvNewLine);
 
             ClearCustomWrappers();
             CustomFunctionWrapperImpl cw = ReturnsCharPtrPtrWrapper();
@@ -76,9 +76,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
 // [[Rcpp::export]]
 " + rcpptype + @" %WRAPFUNCTION%(%WRAPARGS%)
 {
-	int size; 
-    %TRANSARGS%    " + apitype + @" values = %FUNCTION%(%ARGS%, &size);
-    %CLEANTRANSARGS%    return " + convertingFunc + @"(values, size, true);
+    int size;%TRANSARGS%    " + apitype + @" values = %FUNCTION%(%ARGS%, &size);%CLEANTRANSARGS%    return " + convertingFunc + @"(values, size, true);
 }
 "
             };
@@ -122,7 +120,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
             if (AddRcppExport)
-                sb.Append(UniformIndentation + "// [[Rcpp::export]]" + NewLineString);
+                sb.Append(UniformIndentation + "// [[Rcpp::export]]" + EnvNewLine);
             return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp, FunctionNamePostfix);
         }
 
@@ -182,12 +180,17 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
 
         private void RcppToApiType(StringBuilder sb, string typename, string varname)
         {
-
             //void SetErrorCorrectionModel_R(XPtr<OpaquePointer> src, CharacterVector newModelId, CharacterVector elementId, IntegerVector length, IntegerVector seed)
             //{
             //    SetErrorCorrectionModel(src->Get(), as<char*>(newModelId), as<char*>(elementId), as<int>(length), as<int>(seed));
             //}
-            if (IsKnownType(typename))
+            // Now added here due to change required for PythonApiToCApiType
+            TransientArgumentConversion t = FindTransientArgConversion(typename, varname);
+            if (t != null)
+            {
+                sb.Append(t.LocalVarname); // Call with the transient variable name e.g. argname_char_pp
+            }
+            else if (IsKnownType(typename))
                 sb.Append(AddAs(typename, varname));
             else if (IsPointer(typename))
                 ConvertPointerTypeToCapi(sb, typename, varname);

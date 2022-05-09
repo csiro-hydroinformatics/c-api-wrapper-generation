@@ -69,7 +69,7 @@ namespace ApiWrapperGenerator
 
             // for e.g. python avoid multiple newlines.
             fullResult = fullResult.Replace("\n\r\n", "\r\n");
-            fullResult = fullResult.Replace("\r\n", StringHelper.NewLineString);
+            fullResult = fullResult.Replace("\r\n", StringHelper.EnvNewLine);
 
             if (declarationOnly)
                 return (getDeclaration(fullResult)); // HACK - brittle as assumes the template header is the only thing on the first line.
@@ -121,16 +121,16 @@ namespace ApiWrapperGenerator
         private string TransientArgs(string funDef, int start, int offsetLength)
         {
             if (TransientArgsCreation == null) return string.Empty;
-            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCreation, appendSeparator: true, sep: StringHelper.NewLineString);
-            AppendSeparatorIfNeeded(StringHelper.NewLineString, ref result);
+            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCreation, appendSeparator: true, sep: StringHelper.EnvNewLine);
+            AppendSeparatorIfNeeded(StringHelper.EnvNewLine, ref result);
             return result;
         }
 
         private string TransientArgsDispose(string funDef, int start, int offsetLength)
         {
             if (TransientArgsCleanup == null) return string.Empty;
-            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCleanup, appendSeparator: true, sep: StringHelper.NewLineString);
-            AppendSeparatorIfNeeded(StringHelper.NewLineString, ref result);
+            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCleanup, appendSeparator: true, sep: StringHelper.EnvNewLine);
+            AppendSeparatorIfNeeded(StringHelper.EnvNewLine, ref result);
             return result;
         }
 

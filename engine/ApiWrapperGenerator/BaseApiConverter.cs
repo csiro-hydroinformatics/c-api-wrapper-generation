@@ -10,6 +10,7 @@ namespace ApiWrapperGenerator
         protected BaseApiConverter()
         {
             NewLineString = StringHelper.NewLineString;
+            EnvNewLine = StringHelper.EnvNewLine;
             ArgListOpenDelimiter = "(";
             ArgListCloseDelimiter = ")";
             FunctionBodyOpenDelimiter = "{";
@@ -71,14 +72,14 @@ namespace ApiWrapperGenerator
         /// <summary>
         /// Gets the termination characters for all body statement lines generated, e.g. ';\n'
         /// </summary>
-        public string BodyLineTermination { get { return StatementSep + NewLineString; } }
+        public string BodyLineTermination { get { return StatementSep + EnvNewLine; } }
 
         /// <summary>
         /// Gets the indentation characters for all body statement lines generated, e.g. '        '
         /// </summary>
         public string BodyLineIdentation { get { return UniformIndentation + Indentation; } }
-        public string BodyLineOpenFunctionDelimiter { get { return UniformIndentation + FunctionBodyOpenDelimiter + NewLineString; } }
-        public string BodyLineCloseFunctionDelimiter { get { return UniformIndentation + FunctionBodyCloseDelimiter + NewLineString; } }
+        public string BodyLineOpenFunctionDelimiter { get { return UniformIndentation + FunctionBodyOpenDelimiter + EnvNewLine; } }
+        public string BodyLineCloseFunctionDelimiter { get { return UniformIndentation + FunctionBodyCloseDelimiter + EnvNewLine; } }
 
         /// <summary>
         /// Gets/sets the string opening a function arguments list, typically '('
@@ -124,6 +125,8 @@ namespace ApiWrapperGenerator
 
         public string NewLineString { get; set; }
 
+        public string EnvNewLine { get; set; }
+        
         public bool DeclarationOnly { get; set; }
 
         public string CallGetMethod { get; set; }
@@ -165,7 +168,7 @@ namespace ApiWrapperGenerator
         {
             string convertedLine = string.Empty;
             convertedLine += ConvertApiLine(line);
-            convertedLine += NewLineString;
+            convertedLine += EnvNewLine;
             return convertedLine;
         }
 
@@ -408,7 +411,7 @@ namespace ApiWrapperGenerator
             sb.Append(UniformIndentation);//  indentation in "         public void Blah();"
             if (!StringHelper.ParseTypeAndName(sb, funcDef, argumentConverterFunction)) return false;
             bool b = AddFunctionArgs(sb, funcAndArgs, argumentConverterFunction);
-            sb.Append(NewLineString);
+            sb.Append(EnvNewLine);
             return b;
         }
 
@@ -492,7 +495,7 @@ namespace ApiWrapperGenerator
         protected void AddLine(StringBuilder sb, string statement)
         {
             if (!string.IsNullOrEmpty(statement))
-                sb.Append(UniformIndentation + statement + NewLineString);
+                sb.Append(UniformIndentation + statement + EnvNewLine);
         }
         protected void AddNoNewLine(StringBuilder sb, string s)
         {
@@ -519,7 +522,7 @@ namespace ApiWrapperGenerator
             CreateApiFunctionCallFunction(sb, funcDef);
             if (!AddFunctionArgs(sb, funcAndArgs, argFunc, transientArgs, ApiCallOpenParenthesis)) return false;
             sb.Append(StatementSep);
-            sb.Append(NewLineString);
+            sb.Append(EnvNewLine);
             return true;
         }
 

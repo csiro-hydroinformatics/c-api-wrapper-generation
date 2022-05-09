@@ -67,7 +67,7 @@ namespace ApiWrapperGenerator
             SetTypeMap("VOID_PTR_PROVIDER_PTR", NativeHandleInterfaceName);
 
 
-            PrependOutputFile = "// This file was GENERATED\n//Do NOT modify it manually, as you are very likely to lose work\n\n";
+            PrependOutputFile = string.Format("// This file was GENERATED{0}//Do NOT modify it manually, as you are very likely to lose work{0}{0}", EnvNewLine);
 
             ClassName = "SwiftCApi";
 
@@ -495,7 +495,7 @@ QuotedString("%FUNCTION%") +
             // we have to use a custom call below, not the parent, because of char* needing different treatment... KLUDGE
             bool result = createCsharpWrappingFunctionSignature(sb, funcAndArgs, ApiArgToCsharpDelegateArg, DelegateFunctionNamePostfix);
             sb.Append(StatementSep);
-            sb.Append(NewLineString);
+            sb.Append(EnvNewLine);
             return result;
         }
 

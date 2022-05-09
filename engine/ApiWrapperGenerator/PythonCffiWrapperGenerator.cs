@@ -120,7 +120,7 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             if (!string.IsNullOrEmpty(FunctionWrappers))
                 //@convert_strings
                 //@check_exceptions
-                sb.Append(FunctionWrappers + NewLineString);
+                sb.Append(FunctionWrappers + EnvNewLine);
             if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
             string result = "";
             result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
@@ -142,7 +142,6 @@ def %WRAPFUNCTION%(%WRAPARGS%):
 
         private void PythonApiToCApiType(StringBuilder sb, string typename, string varname)
         {
-
             TransientArgumentConversion t = FindTransientArgConversion(typename, varname);
             if (t != null)
             {
@@ -204,7 +203,7 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             var funcDecl = GetTypeAndName(funcAndArgs.Function);
             string funcName = funcDecl.VarName + FunctionNamePostfix;
             AddPyDocstringStart(sb);
-            sb.Append(funcName + NewLineString);
+            sb.Append(funcName + EnvNewLine);
             AddPyDocLine(sb);
             AddPyDocLine(sb, funcName + ": generated wrapper function for API function " + funcDecl.VarName);
             AddPyDocLine(sb);
