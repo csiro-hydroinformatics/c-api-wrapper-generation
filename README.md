@@ -68,7 +68,7 @@ CreateHypercubeParameterizer_R <- function(strategy) {
 }
 ```
 
-`opaque_pointer_handle` and `mkExternalObjRef` are managing native object lifetime. They are not included in the present repository, but if useful to you in the related [cpp interop commons](https://github.com/csiro-hydroinformatics/rcpp-interop-commons) repository.
+`opaque_pointer_handle` and `mkExternalObjRef` are managing native object lifetime. They are not included in the present repository, but if useful to you in the related [cpp interop commons](https://github.com/csiro-hydroinformatics/c-interop) repository.
 
 ## Getting started
 
