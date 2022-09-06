@@ -2,7 +2,7 @@ using System.Text;
 
 namespace ApiWrapperGenerator
 {
-    public class RcppGlueWrapperGenerator : BaseApiConverter, IApiConverter
+    public class RcppGlueWrapperGenerator : BaseApiConverter
     {
 
         public RcppGlueWrapperGenerator()

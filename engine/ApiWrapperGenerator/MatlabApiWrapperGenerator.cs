@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ApiWrapperGenerator
 {
-    public class MatlabApiWrapperGenerator : BaseApiConverter, IApiConverter
+    public class MatlabApiWrapperGenerator : BaseApiConverter
     {
         public MatlabApiWrapperGenerator()
         {

@@ -2,7 +2,7 @@ using System.Text;
 
 namespace ApiWrapperGenerator
 {
-    public class CppApiWrapperGenerator : BaseApiConverter, IApiConverter
+    public class CppApiWrapperGenerator : BaseApiConverter
     {
         public CppApiWrapperGenerator()
         {

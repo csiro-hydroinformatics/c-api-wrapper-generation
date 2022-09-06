@@ -6,7 +6,7 @@ namespace ApiWrapperGenerator
     /// Converts C API functions declarations to 
     /// R code wrapping/unwrapping external pointers.
     /// </summary>
-    public class RXptrWrapperGenerator : BaseApiConverter, IApiConverter
+    public class RXptrWrapperGenerator : BaseApiConverter
     {
 
         public RXptrWrapperGenerator()

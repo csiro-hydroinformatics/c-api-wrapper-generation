@@ -133,7 +133,7 @@ namespace ApiWrapperGenerator
 
 
     }
-    public class CsharpApiWrapperGenerator : BaseCsharpApiWrapperGenerator, IApiConverter
+    public class CsharpApiWrapperGenerator : BaseCsharpApiWrapperGenerator
     {
         public CsharpApiWrapperGenerator()
         {
@@ -432,7 +432,7 @@ QuotedString("%FUNCTION%") +
 
     }
 
-    public class CsharpDelegatesApiWrapperGenerator : BaseCsharpApiWrapperGenerator, IApiConverter
+    public class CsharpDelegatesApiWrapperGenerator : BaseCsharpApiWrapperGenerator
     {
         public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
         {

@@ -6,7 +6,7 @@ namespace ApiWrapperGenerator
     /// Converts C API functions declarations to 
     /// Python code (using CFFI) wrapping/unwrapping external pointers.
     /// </summary>
-    public class PythonCffiWrapperGenerator : BaseApiConverter, IApiConverter
+    public class PythonCffiWrapperGenerator : BaseApiConverter
     {
 
         public PythonCffiWrapperGenerator()

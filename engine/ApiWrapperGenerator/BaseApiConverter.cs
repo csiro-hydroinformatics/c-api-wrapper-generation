@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace ApiWrapperGenerator
 {
-    public abstract class BaseApiConverter
+    public abstract class BaseApiConverter : IApiConverter
     {
         protected BaseApiConverter()
         {
