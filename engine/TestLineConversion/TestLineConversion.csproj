@@ -6,13 +6,13 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{2E7AA44B-C636-4A1D-9C2A-26E4DEF6E84C}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
-    <!-- <TargetFrameworks>net472;net461;netcoreapp2.0</TargetFrameworks> -->
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <!-- <TargetFrameworks>net472;net461;netcoreapp3.1</TargetFrameworks> -->
     <Version>1.8.0-alpha</Version>
     <Copyright>Copyright © CSIRO 2018</Copyright>
     <RepositoryUrl>https://github.com/csiro-hydroinformatics/c-api-wrapper-generation</RepositoryUrl>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' != 'netcoreapp2.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != 'netcoreapp3.1' ">
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />

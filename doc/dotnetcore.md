@@ -1,4 +1,7 @@
-Dec 2018
+
+# Dec 2018
+
+> These are legacy notes, likely to be partly or wholly superseded
 
 Documenting steps taken to set the gen code on a linux box using dotnet core.
 
@@ -44,9 +47,10 @@ Fair enough.
 rm Properties/AssemblyInfo.cs
 dotnet build -f netstandard2.0  ApiWrapperGenerator.csproj
 ```
+
 Looking good!
 
-`cd ~/src/github_jm/c-api-wrapper-generation/TestApiWrapperGenerator` `dotnet build -f netcoreapp2.0 TestApiWrapperGenerator.csproj`
+`cd ~/src/github_jm/c-api-wrapper-generation/TestApiWrapperGenerator` `dotnet build -f netcoreapp3.1 TestApiWrapperGenerator.csproj`
 
 ```bash
 cd ~/src/github_jm/c-api-wrapper-generation/ApiWrapperGenerator
@@ -72,7 +76,7 @@ dotnet test TestApiWrapperGenerator.csproj
 Build started, please wait...
 Build completed.
 
-Test run for /home/per202/src/github_jm/c-api-wrapper-generation/TestApiWrapperGenerator/bin/Debug/netcoreapp2.0/TestApiWrapperGenerator.dll(.NETCoreApp,Version=v2.0)
+Test run for /home/per202/src/github_jm/c-api-wrapper-generation/TestApiWrapperGenerator/bin/Debug/netcoreapp3.1/TestApiWrapperGenerator.dll(.NETCoreApp,Version=v2.0)
 Microsoft (R) Test Execution Command Line Tool Version 15.9.0
 Copyright (c) Microsoft Corporation.  All rights reserved.
 

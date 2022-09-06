@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{977E0F36-2408-44CD-BEAA-134581B17878}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <!-- <TargetFrameworks>netstandard2.0;net472;net461</TargetFrameworks> -->
     <Version>1.8.0-alpha</Version>
     <Copyright>Copyright © CSIRO 2018</Copyright>

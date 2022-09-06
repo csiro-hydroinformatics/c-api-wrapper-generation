@@ -22,7 +22,7 @@ namespace TestApiWrapperGenerator
             var filtered = filter.FilterInput(apiLine);
             var w = new WrapperGenerator(gen, filter);
             var result = w.Convert(filtered);
-            Assert.Equal(1, result.Length);
+            Assert.Single(result);
             var s = result[0].Trim('\n');
 
             string[] expectedLines = {

@@ -6,15 +6,15 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{72AA8156-CC49-4877-B996-B157010F1AA5}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <!-- <TargetFramework>netstandard2.0</TargetFramework> -->
+    <!-- <TargetFramework>netstandard2.1</TargetFramework> -->
     <!-- using netcoreapp2 by similarity with dynamic-interop-dll -->
-    <TargetFramework>netcoreapp2.0</TargetFramework>
-    <!-- <TargetFrameworks>net472;net461;netcoreapp2.0</TargetFrameworks> -->
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <!-- <TargetFrameworks>net472;net461;netcoreapp3.1</TargetFrameworks> -->
     <Version>1.8.0-alpha</Version>
     <Copyright>Copyright © CSIRO 2018</Copyright>
     <RepositoryUrl>https://github.com/csiro-hydroinformatics/c-api-wrapper-generation</RepositoryUrl>
   </PropertyGroup>
-  <ItemGroup Condition=" '$(TargetFramework)' != 'netcoreapp2.0' ">
+  <ItemGroup Condition=" '$(TargetFramework)' != 'netcoreapp3.1' ">
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -24,9 +24,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.0.0"></PackageReference>
-    <PackageReference Include="xunit" Version="2.3.0-beta5-build3769" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.3.0-beta5-build3769" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.1"></PackageReference>
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <!-- Notice that xunit.assert, xunit.core, etc. are imported automatically.-->
   </ItemGroup> 
   <ItemGroup>

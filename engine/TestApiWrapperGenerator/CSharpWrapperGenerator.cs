@@ -24,7 +24,7 @@ namespace TestApiWrapperGenerator
             var filtered = filter.FilterInput(apiLine);
             var w = new WrapperGenerator(genDelegate, filter);
             var result = w.Convert(filtered);
-            Assert.Equal(1, result.Length);
+            Assert.Single(result);
             var s = result[0].Trim('\n');
             string expected = genDelegate.Indentation + genDelegate.Indentation + @"private delegate int ApiFun_csdelegate(IntPtr simulation);";
             Assert.Equal(expected, s);
@@ -203,7 +203,7 @@ namespace TestApiWrapperGenerator
                 if (result[i].Contains("\r"))
                     throw new FormatException("A line contains a carriage return character");
             }
-            Assert.Equal(1, result.Length);
+            Assert.Single(result);
             string[] lines = result[0].Split(new string[] { /*Environment.NewLine, */"\n" }, StringSplitOptions.None);
             //lines = (from l in lines select l.Trim()).ToArray();
             //lines = (from l in lines select l.Replace("  ", " ")).ToArray();

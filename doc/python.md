@@ -1,8 +1,5 @@
 
-
 ## sample code
-
-## 
 
 ```r
 library(capigen)

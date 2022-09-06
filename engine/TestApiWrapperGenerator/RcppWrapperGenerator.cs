@@ -98,6 +98,7 @@ namespace TestApiWrapperGenerator
             gen.Indentation = "    ";
             gen.FunctionNamePostfix = "_RcppPostfix";
             gen.SetTypeMap("values_vector*", "const NumericVector&");
+            gen.SetReturnedValueConversion("values_vector*", "NumericVector");
             gen.SetTransientArgConversion("values_vector*", "_vv",
                 "values_vector* C_ARGNAME = cinterop::utils::to_values_vector_ptr(RCPP_ARGNAME);",
                 "cinterop::disposal::dispose_of<values_vector>(C_ARGNAME);");
