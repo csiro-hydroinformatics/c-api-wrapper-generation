@@ -154,7 +154,7 @@ find_uchronia_src_path <- function() {
 load_wrapper_gen_lib <- function(wgenDir='') {
   if(wgenDir=='') wgenDir <- file.path(find_env_github_root_path(), 'c-api-wrapper-generation')
   wgenDir <- check_dir_exists(wgenDir)
-  wgenDll <- file.path(wgenDir, 'ApiWrapperGenerator/bin/Debug/netstandard2.0/ApiWrapperGenerator.dll')
+  wgenDll <- file.path(wgenDir, 'ApiWrapperGenerator/bin/Debug/net6.0/ApiWrapperGenerator.dll')
   if(!file.exists(wgenDll)) 
   {
     msg <- (paste(wgenDll, 'not found - you probably need to compile the C# project\n'))
