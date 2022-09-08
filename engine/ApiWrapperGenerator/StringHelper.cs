@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace ApiWrapperGenerator
 {
@@ -49,6 +50,28 @@ namespace ApiWrapperGenerator
         {
             string[] args = functionArguments.Trim().Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries); //NodeInfo* nodes, int numNodes, LinkInfo* links, int numLinks
             return args;
+        }
+
+        public static string[] SplitToLines(string s)
+        {
+            // if (s.Contains("\r"))
+            //     throw new FormatException("A line contains a carriage return character");
+            string[] lines = s.Split(new string[] { EnvNewLine, NewLineString }, StringSplitOptions.None);
+            //lines = (from l in lines select l.Trim()).ToArray();
+            //lines = (from l in lines select l.Replace("  ", " ")).ToArray();
+            return lines;
+        }
+
+        public static bool IsBlankLine(string s)
+        {
+            return s.Trim() == "";
+        }
+
+        public static string RemoveBlankLines(string s)
+        {
+            var lines = SplitToLines(s);
+            var nonBlank = lines.Where(c => !StringHelper.IsBlankLine(c)).ToArray();
+            return string.Join(EnvNewLine, nonBlank) + EnvNewLine;
         }
 
         public static TypeAndName GetVariableDeclaration(string argString)

@@ -101,7 +101,7 @@ namespace ApiWrapperGenerator
 
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
-            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp, FunctionNamePostfix);
+            return createWrappingFunctionSignature(sb, funcAndArgs, null, ApiArgToRcpp, FunctionNamePostfix);
         }
 
         private void ApiArgToRcpp(StringBuilder sb, TypeAndName typeAndName)

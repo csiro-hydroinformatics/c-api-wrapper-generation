@@ -146,10 +146,18 @@ namespace ApiWrapperGenerator
 
         private Dictionary<string, string> typeMap = new Dictionary<string, string>();
 
+        private Dictionary<string, string> returnedTypeMap = new Dictionary<string, string>();
+
         public Dictionary<string, string> TypeMap
         {
             get { return typeMap; }
             set { typeMap = value; }
+        }
+
+        public Dictionary<string, string> ReturnedTypeMap
+        {
+            get { return returnedTypeMap; }
+            set { returnedTypeMap = value; }
         }
 
         // CharacterVector nodeIds
@@ -185,10 +193,11 @@ namespace ApiWrapperGenerator
 
         public abstract string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs);
 
-        protected string DefaultAnsiCToWrapperType(string rt)
+        protected string DefaultAnsiCToWrapperType(string rt, Dictionary<string, string> map = null)
         {
+            if (map == null) map = this.TypeMap;
             var s = rt.Trim();
-            if (TypeMap.ContainsKey(s)) return TypeMap[s]; else return s;
+            if (map.ContainsKey(s)) return map[s]; else return s;
         }
 
         protected bool IsPointerPointer(string typename)
@@ -300,9 +309,19 @@ namespace ApiWrapperGenerator
             typeMap[cType] = rcppType;
         }
 
+        public void SetReturnedTypeMap(string cType, string rcppType)
+        {
+            returnedTypeMap[cType] = rcppType;
+        }
+
         public bool IsKnownType(string typename)
         {
             return typeMap.ContainsKey(typename);
+        }
+
+        public bool IsKnownReturnedType(string typename)
+        {
+            return returnedTypeMap.ContainsKey(typename);
         }
 
         public Dictionary<string, TransientArgumentConversion> FindTransientVariables(string functionArguments)
@@ -405,11 +424,12 @@ namespace ApiWrapperGenerator
             returnedValuesConversion[cArgType] = new ReturnedValueConversion{ConversionTemplate = conversionTemplate};
         }
 
-        protected bool createWrappingFunctionSignature(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argumentConverterFunction, string functionNamePostfix)
+        protected bool createWrappingFunctionSignature(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> returnedConverterFunction, Action<StringBuilder, TypeAndName> argumentConverterFunction, string functionNamePostfix)
         {
             string funcDef = funcAndArgs.Function + functionNamePostfix;
             sb.Append(UniformIndentation);//  indentation in "         public void Blah();"
-            if (!StringHelper.ParseTypeAndName(sb, funcDef, argumentConverterFunction)) return false;
+            var retFunc = returnedConverterFunction != null ? returnedConverterFunction : argumentConverterFunction; 
+            if (!StringHelper.ParseTypeAndName(sb, funcDef, retFunc)) return false;
             bool b = AddFunctionArgs(sb, funcAndArgs, argumentConverterFunction);
             sb.Append(EnvNewLine);
             return b;
@@ -507,7 +527,7 @@ namespace ApiWrapperGenerator
         {
             if (!string.IsNullOrEmpty(statement))
             {
-                sb.Append(UniformIndentation);
+                // sb.Append(UniformIndentation);
                 AddLine(sb, Indentation + statement);
             }
         }

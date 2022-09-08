@@ -36,6 +36,8 @@ namespace ApiWrapperGenerator
         /// Number of arguments removed used for the %ARGS% marker. If API args (a, b, c) and  RemovedLastArgs == 1, then template replacement with write a, b
         public int RemovedLastArgs = 1;
 
+        public bool TransientArgsAppendNewline = false;
+
         public Action<StringBuilder, TypeAndName> ApiArgToWrappingLang = null;
         public Action<StringBuilder, TypeAndName> ApiCallArgument = null;
         public Action<StringBuilder, TypeAndName> TransientArgsCreation = null;
@@ -81,7 +83,7 @@ namespace ApiWrapperGenerator
 
         private string getDeclaration(string fullResult)
         {
-            string[] newLines = new string[] { Environment.NewLine, "\n" };
+            string[] newLines = new string[] { StringHelper.EnvNewLine, StringHelper.NewLineString };
             var lines = fullResult.Split(newLines, StringSplitOptions.RemoveEmptyEntries);
             int firstValidIndex = -1;
             for (int i = 0; i < lines.Length; i++)
@@ -121,7 +123,7 @@ namespace ApiWrapperGenerator
         private string TransientArgs(string funDef, int start, int offsetLength)
         {
             if (TransientArgsCreation == null) return string.Empty;
-            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCreation, appendSeparator: true, sep: StringHelper.EnvNewLine);
+            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCreation, appendSeparator: this.TransientArgsAppendNewline, sep: StringHelper.EnvNewLine);
             AppendSeparatorIfNeeded(StringHelper.EnvNewLine, ref result);
             return result;
         }
@@ -129,7 +131,7 @@ namespace ApiWrapperGenerator
         private string TransientArgsDispose(string funDef, int start, int offsetLength)
         {
             if (TransientArgsCleanup == null) return string.Empty;
-            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCleanup, appendSeparator: true, sep: StringHelper.EnvNewLine);
+            string result = ProcessFunctionArguments(funDef, start, offsetLength, TransientArgsCleanup, appendSeparator: this.TransientArgsAppendNewline, sep: StringHelper.EnvNewLine);
             AppendSeparatorIfNeeded(StringHelper.EnvNewLine, ref result);
             return result;
         }
@@ -149,7 +151,11 @@ namespace ApiWrapperGenerator
             StringHelper.appendArgs(sb, argFunc, transientArgs, args, 0, end, sep);
             if (appendSeparator && (end > start))
                 AppendSeparatorIfNeeded(sep, sb);
-            return sb.ToString();
+            var s = sb.ToString();
+            if (sep == StringHelper.EnvNewLine || sep == StringHelper.NewLineString)
+                return StringHelper.RemoveBlankLines(s);
+            else
+                return s;
         }
 
         private static void AppendSeparatorIfNeeded(string sep, StringBuilder sb)

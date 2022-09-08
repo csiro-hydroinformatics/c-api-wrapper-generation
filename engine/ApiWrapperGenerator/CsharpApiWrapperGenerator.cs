@@ -376,7 +376,7 @@ namespace ApiWrapperGenerator
 
         private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
-            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToCsharp, FunctionNamePostfix);
+            return createWrappingFunctionSignature(sb, funcAndArgs, null, ApiArgToCsharp, FunctionNamePostfix);
         }
 
         private bool IsKnownSwiftType(string cApiType)
@@ -418,10 +418,10 @@ namespace ApiWrapperGenerator
                 Template = @"string[] %FUNCTION%_cs(%WRAPARGS%)
 {
     IntPtr size = InteropHelper.AllocHGlobal<int>();
-    %TRANSARGS%    IntPtr result = " + ClassName + @".NativeSwiftLib.GetFunction<%FUNCTION%_csdelegate>(" +
+%TRANSARGS%    IntPtr result = " + ClassName + @".NativeSwiftLib.GetFunction<%FUNCTION%_csdelegate>(" +
 QuotedString("%FUNCTION%") +
 @")(%ARGS%, size);
-    %CLEANTRANSARGS%    int n = InteropHelper.Read<int>(size, true);
+%CLEANTRANSARGS%    int n = InteropHelper.Read<int>(size, true);
     return InteropHelper.GlobalAnsiToArrayString(result, n, true);
 }
 "

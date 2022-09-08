@@ -12,6 +12,14 @@ namespace TestApiWrapperGenerator
     {
         static string ClassName = "SwiftCApi";
 
+
+        [Fact]
+        public void TestRemoveBlankLines()
+        {
+            string s = "    \n    int a = 1;\n    \n    double b = 0;\n    \n\n\n";
+            Assert.Equal(StringHelper.RemoveBlankLines(s), "    int a = 1;\n    double b = 0;\n");
+        }
+
         [Fact]
         public void Indentation()
         {
@@ -116,7 +124,7 @@ namespace TestApiWrapperGenerator
             string apiLine = "SWIFT_API void Play(MODEL_SIMULATION_PTR simulation, const char* variableIdentifier, double * values, TS_GEOMETRY_PTR geom);";
 
             string[] expectedLines = new string[] {
-"void Play_cs(IModelSimulation simulation, string variableIdentifier, double[] values, MarshaledTimeSeriesGeometry geom)",
+"void Play_cs(IModelSimulation simulation, string variableIdentifier, double[] values, ref MarshaledTimeSeriesGeometry geom)",
 "{",
 "    IntPtr values_doublep = InteropHelper.ArrayDoubleToNative(values);",
 "    IntPtr geom_struct = InteropHelper.StructureToPtr(geom);",
@@ -139,7 +147,7 @@ namespace TestApiWrapperGenerator
             string apiLine = "SWIFT_API void GetStart(SIMULATION_BASE_PTR simulation, DATE_TIME_INFO_PTR start);";
 
             string[] expectedLines = new string[] {
-"void GetStart_cs(IModelSimulation simulation, MarshaledDateTime start)",
+"void GetStart_cs(IModelSimulation simulation, ref MarshaledDateTime start)",
 "{",
 "    IntPtr start_struct = InteropHelper.StructureToPtr(start);",
 "    " + ClassName + ".NativeSwiftLib.GetFunction<GetStart_csdelegate>(\"GetStart\")(CheckedDangerousGetHandle(simulation, \"simulation\"), start_struct);",
@@ -174,13 +182,14 @@ namespace TestApiWrapperGenerator
             CheckWrappingFunction(filter, gen, apiLine, expectedLines);
         }
 
-        public static void CheckWrappingFunction(HeaderFilter filter, IApiConverter gen, string apiLine, string[] expectedLines)
+        public static void CheckWrappingFunction(HeaderFilter filter, IApiConverter gen, string apiLine, string[] expectedLines, bool strict=true)
         {
             var filtered = filter.FilterInput(apiLine);
             var w = new WrapperGenerator(gen, filter);
             var result = w.Convert(filtered);
             string[] lines = SplitToLines(result);
-
+            // if (!strict)
+            //     lines = lines.Select(x => x.Trim()).ToArray();
             CheckExpectedLines(expectedLines, lines);
         }
 
@@ -198,11 +207,11 @@ namespace TestApiWrapperGenerator
 
         public static string[] SplitToLines(string[] result)
         {
-            for (int i = 0; i < result.Length; i++)
-            {
-                if (result[i].Contains("\r"))
-                    throw new FormatException("A line contains a carriage return character");
-            }
+            // for (int i = 0; i < result.Length; i++)
+            // {
+            //     if (result[i].Contains("\r"))
+            //         throw new FormatException("A line contains a carriage return character");
+            // }
             Assert.Single(result);
             string[] lines = result[0].Split(new string[] { /*Environment.NewLine, */"\n" }, StringSplitOptions.None);
             //lines = (from l in lines select l.Trim()).ToArray();

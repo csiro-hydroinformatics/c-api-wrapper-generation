@@ -121,7 +121,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
         {
             if (AddRcppExport)
                 sb.Append(UniformIndentation + "// [[Rcpp::export]]" + EnvNewLine);
-            return createWrappingFunctionSignature(sb, funcAndArgs, ApiArgToRcpp, FunctionNamePostfix);
+            return createWrappingFunctionSignature(sb, funcAndArgs, ReturnedValueFunctionToRcpp, ApiArgToRcpp, FunctionNamePostfix);
         }
 
         protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
@@ -144,6 +144,17 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
             sb.Append(typeAndName.VarName);
         }
 
+        private void ReturnedValueFunctionToRcpp(StringBuilder sb, TypeAndName typeAndName)
+        {
+            var rt = typeAndName.TypeName;
+            if (IsKnownReturnedType(rt))
+                sb.Append(ReturnedCppToRTypes(rt));
+            else
+                ApiTypeToRcpp(sb, rt);
+            sb.Append(" ");
+            sb.Append(typeAndName.VarName);
+        }
+
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
         {
             RcppToApiType(sb, typeAndName.TypeName, typeAndName.VarName);
@@ -161,7 +172,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
 
         private string RcppWrap(string typename, string varname)
         {
-            if (IsKnownType(typename))
+            if (IsKnownReturnedType(typename) || (IsKnownType(typename)))
                 return WrapAsRcppVector(typename, varname);
             else if (IsPointer(typename))
                 return (createXPtr(typename, varname, true)); // XPtr<ModelRunner>(new OpaquePointer(varname))
@@ -175,7 +186,10 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
                 typename == "int" ||
                 typename == "bool")
                 return "Rcpp::wrap(" + varname + ")";
-            return CppToRTypes(typename) + "(" + varname + ")";
+            if (IsKnownReturnedType(typename))
+                return ReturnedCppToRTypes(typename) + "(" + varname + ")";
+            else
+                return CppToRTypes(typename) + "(" + varname + ")";
         }
 
         private void RcppToApiType(StringBuilder sb, string typename, string varname)
@@ -227,6 +241,11 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
         private string CppToRTypes(string rt)
         {
             return DefaultAnsiCToWrapperType(rt);
+        }
+
+        private string ReturnedCppToRTypes(string rt)
+        {
+            return DefaultAnsiCToWrapperType(rt, this.ReturnedTypeMap);
         }
     }
 }

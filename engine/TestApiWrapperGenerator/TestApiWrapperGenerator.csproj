@@ -6,9 +6,9 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{72AA8156-CC49-4877-B996-B157010F1AA5}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <!-- <TargetFramework>netstandard2.1</TargetFramework> -->
+    <!-- <TargetFramework>net6.0</TargetFramework> -->
     <!-- using netcoreapp2 by similarity with dynamic-interop-dll -->
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <!-- <TargetFrameworks>net472;net461;netcoreapp3.1</TargetFrameworks> -->
     <Version>1.8.0-alpha</Version>
     <Copyright>Copyright © CSIRO 2018</Copyright>

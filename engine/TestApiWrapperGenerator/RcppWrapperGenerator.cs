@@ -75,12 +75,37 @@ namespace TestApiWrapperGenerator
             gen.ApiCallPostfix = "_Rcpp";
             expectedLines = new string[] {
 "GetNumRunoffModelVarIdentifiers_RPostfix <- function(modelId) {",
-"  modelId <- getSwiftXptr(modelId)",
+"  modelId <- cinterop::getExternalXptr(modelId)",
 "  result <- GetNumRunoffModelVarIdentifiers_Rcpp(modelId)",
-"  return(mkSwiftObjRef(result, 'int'))",
+"  return(cinterop::mkExternalObjRef(result, 'int'))",
 "}",
 "", // newline
 "" // newline, ie empty line after body.
+            };
+
+            CSharpWrapperGenerator.CheckWrappingFunction(filter, gen, apiLine, expectedLines);
+
+        }
+
+        /// <summary>
+        /// Checks that there is a distinction between the types for function 
+        /// input arguments and returned type. This makes sense mostly for strongly types languages such as CPP.
+        /// </summary>
+        [Fact]
+        public void TypeConversionReturnedOrTransientTypes()
+        {
+            string apiLine = @"	SWIFT_API values_vector* ConvertValues(values_vector* values);";
+            HeaderFilter filter = new HeaderFilter();
+            var gen = new RcppGlueWrapperGenerator();
+            gen.UniformIndentationCount = 2;
+            gen.Indentation = "    ";
+            gen.FunctionNamePostfix = "_RcppPostfix";
+            gen.SetTypeMap("values_vector*", "const NumericVector&");
+            gen.SetReturnedTypeMap("values_vector*", "NumericVector");
+            gen.DeclarationOnly = true;
+            gen.AddRcppExport = false;
+            string[] expectedLines = {"        NumericVector ConvertValues_RcppPostfix(const NumericVector& values)",";", // newline 
+            "" // newline, ie empty line after body.
             };
 
             CSharpWrapperGenerator.CheckWrappingFunction(filter, gen, apiLine, expectedLines);
@@ -99,6 +124,7 @@ namespace TestApiWrapperGenerator
             gen.FunctionNamePostfix = "_RcppPostfix";
             gen.SetTypeMap("values_vector*", "const NumericVector&");
             gen.SetReturnedValueConversion("values_vector*", "NumericVector");
+            gen.SetReturnedTypeMap("values_vector*", "NumericVector");
             gen.SetTransientArgConversion("values_vector*", "_vv",
                 "values_vector* C_ARGNAME = cinterop::utils::to_values_vector_ptr(RCPP_ARGNAME);",
                 "cinterop::disposal::dispose_of<values_vector>(C_ARGNAME);");
@@ -119,7 +145,6 @@ namespace TestApiWrapperGenerator
 
             CSharpWrapperGenerator.CheckWrappingFunction(filter, gen, apiLine, expectedLines);
         }
-
 
     }
 }
