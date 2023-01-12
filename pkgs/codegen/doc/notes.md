@@ -1,6 +1,6 @@
 
 
-See /home/per202/src/csiro/stash/per202/datatypes/bindings/python for a use case
+See /home/per202/src/datatypes/bindings/python for a use case
 
 # Elaborate on Matlab bindings gen
 
