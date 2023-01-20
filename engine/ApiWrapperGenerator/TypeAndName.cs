@@ -1,9 +1,21 @@
 using System;
+using System.Collections.Generic;
 
 namespace ApiWrapperGenerator
 {
     public class TypeAndName
     {
+
+        private static List<string> reservedWords = new List<string>();
+        /// <summary>
+        /// List of words that are reserved in the target wrapper language, e.g. lambda in python
+        /// </summary>
+        public static List<string> ReservedWords
+        {
+            get { return reservedWords; }
+            set { reservedWords = value; }
+        }
+        
         public TypeAndName(string argString)
         {
             // argString could be something like:
@@ -19,11 +31,26 @@ namespace ApiWrapperGenerator
             if (typeAndName.Length == 2)
             {
                 TypeName = typeAndName[0].Trim();
-                VarName = typeAndName[1].Trim();
+                VarName = checkReservedWords(typeAndName[1].Trim());
             }
             else
                 Unexpected = true;
         }
+
+        private string checkReservedWords(string v)
+        {
+            string y = v;
+            foreach (var x in TypeAndName.ReservedWords)
+            {
+                if (x == v)
+                {
+                    y = v + "_var";
+                    break;
+                }
+            }
+            return y;
+        }
+
         public string TypeName = string.Empty;
         public string VarName = string.Empty;
         public bool Unexpected = false;

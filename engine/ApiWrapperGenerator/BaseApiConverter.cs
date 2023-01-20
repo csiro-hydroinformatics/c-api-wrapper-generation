@@ -534,16 +534,31 @@ namespace ApiWrapperGenerator
 
         public bool ApiCallOpenParenthesis { get; set; }
 
-        protected bool CreateApiFunctionCall(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs, TypeAndName funcDef, bool returnsVal)
+        protected bool CreateFunctionCall(StringBuilder sb, FuncAndArgs funcAndArgs, 
+            Action<StringBuilder, TypeAndName> argFunc, 
+            Action<StringBuilder, TypeAndName> createFunctionCallFunc, 
+            Dictionary<string, TransientArgumentConversion> transientArgs, 
+            TypeAndName funcDef, 
+            bool returnsVal)
         {
             sb.Append(UniformIndentation);
             sb.Append(Indentation);
             if (returnsVal) AppendReturnedValueDeclaration(sb);
-            CreateApiFunctionCallFunction(sb, funcDef);
+            createFunctionCallFunc(sb, funcDef);
             if (!AddFunctionArgs(sb, funcAndArgs, argFunc, transientArgs, ApiCallOpenParenthesis)) return false;
             sb.Append(StatementSep);
             sb.Append(EnvNewLine);
             return true;
+        }
+
+        protected bool CreateApiFunctionCall(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc, Dictionary<string, TransientArgumentConversion> transientArgs, TypeAndName funcDef, bool returnsVal)
+        {
+            return this.CreateFunctionCall(sb, funcAndArgs,
+                argFunc,
+                this.CreateApiFunctionCallFunction,
+                transientArgs,
+                funcDef,
+                returnsVal);
         }
 
         protected virtual void CreateApiFunctionCallFunction(StringBuilder sb, TypeAndName funcDef)

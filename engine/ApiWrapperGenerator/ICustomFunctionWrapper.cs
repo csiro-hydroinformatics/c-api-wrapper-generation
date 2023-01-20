@@ -23,13 +23,16 @@ namespace ApiWrapperGenerator
         public CustomFunctionWrapperImpl()
         {
             StatementSep = ";";
+            this.ApiArgIdentity = ApiArgSimpleVarnane;
         }
 
         public string Template;
         public string Docstring = "%WRAPFUNCTIONDOCSTRING%";
+        public string CArgsNames = "%CARGSNAMES%";
         public string Argstvar = "%ARGS%";
         public string Wrapargstvar = "%WRAPARGS%";
         public string Functvar = "%FUNCTION%";
+        public string CFunctvar = "%CFUNCTION%";
         public string Wrapfunctvar = "%WRAPFUNCTION%";
         public string Transargtvar = "%TRANSARGS%";
         public string Transargcleantvar = "%CLEANTRANSARGS%";
@@ -38,7 +41,22 @@ namespace ApiWrapperGenerator
 
         public bool TransientArgsAppendNewline = false;
 
+        /// <summary>
+        /// Function that converts a C API function argument to the target wrapping language function argument
+        /// </summary>
         public Action<StringBuilder, TypeAndName> ApiArgToWrappingLang = null;
+
+
+        private void ApiArgSimpleVarnane(StringBuilder sb, TypeAndName typeAndName)
+        {
+            sb.Append(typeAndName.VarName);
+        }
+
+        public Action<StringBuilder, TypeAndName> ApiArgIdentity = null;
+
+        /// <summary>
+        /// Function that converts a C API function argument to the string used for the argument in the interop call. 
+        /// </summary>
         public Action<StringBuilder, TypeAndName> ApiCallArgument = null;
         public Action<StringBuilder, TypeAndName> TransientArgsCreation = null;
         public Action<StringBuilder, TypeAndName> TransientArgsCleanup = null;
@@ -53,12 +71,14 @@ namespace ApiWrapperGenerator
         {
             string funcName = StringHelper.GetFuncName(funDef);
             string wrapFuncName = funcName + this.FunctionNamePostfix;
-            string calledfuncName = CalledFunctionNamePrefix + funcName + this.CalledFunctionNamePostfix;
+            string calledfuncName = apiFunctionCall(funcName);
             var fullResult = Template
+                .Replace(CArgsNames, UntypedWrapArgsDecl(funDef, 0, 0))
                 .Replace(Wrapargstvar, WrapArgsDecl(funDef, 0, 0))
                 .Replace(Argstvar, FuncCallArgs(funDef, 0, 0, false))
                 .Replace(Wrapfunctvar, wrapFuncName)
                 .Replace(Functvar, calledfuncName)
+                .Replace(CFunctvar, funcName)
                 .Replace(Transargtvar, TransientArgs(funDef, 0, 0))
                 .Replace(Transargcleantvar, TransientArgsDispose(funDef, 0, 0))
                 .Replace(Docstring, GenerateDocString(funDef))
@@ -77,6 +97,14 @@ namespace ApiWrapperGenerator
                 return (getDeclaration(fullResult)); // HACK - brittle as assumes the template header is the only thing on the first line.
             else
                 return fullResult;
+        }
+
+        /// <summary>
+        /// Builds the lowest level string used to invoke the C API
+        /// </summary>
+        protected virtual string apiFunctionCall(string funcName)
+        {
+            return CalledFunctionNamePrefix + funcName + this.CalledFunctionNamePostfix;
         }
 
         public string StatementSep { get; set; }
@@ -104,12 +132,22 @@ namespace ApiWrapperGenerator
 
         public Func<string, bool> IsMatchFunc = null;
 
-        // Below are more tricky ones, not yet fully fleshed out support.
-
-        private string WrapArgsDecl(string funDef, int start, int offsetLength)
+        /// <summary>
+        /// Converts a C API line to the string with the wrapping function arguments declaration
+        /// </summary>
+        /// <param name="funDef">C API function definition line</param>
+        /// <param name="start">Starting index of the parameter converted. It may not be zero in some cases</param>
+        /// <param name="offsetLength">Number of parameters at the end of the list to not process</param>
+        private string WrapArgsDecl(string funDef, int start=0, int offsetLength=0)
         {
             if (ApiArgToWrappingLang == null) return string.Empty;
             return ProcessFunctionArguments(funDef, start, offsetLength, ApiArgToWrappingLang);
+        }
+
+        private string UntypedWrapArgsDecl(string funDef, int start=0, int offsetLength=0)
+        {
+            if (ApiArgToWrappingLang == null) return string.Empty;
+            return ProcessFunctionArguments(funDef, start, offsetLength, ApiArgIdentity);
         }
 
         private string GenerateDocString(string funDef)

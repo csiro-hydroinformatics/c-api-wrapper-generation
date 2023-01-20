@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace ApiWrapperGenerator
@@ -8,6 +10,11 @@ namespace ApiWrapperGenerator
     /// </summary>
     public class PythonCffiWrapperGenerator : BaseApiConverter
     {
+
+        static PythonCffiWrapperGenerator()
+        {
+            TypeAndName.ReservedWords.Add("lambda");
+        }
 
         public PythonCffiWrapperGenerator()
         {
@@ -101,11 +108,14 @@ namespace ApiWrapperGenerator
                 CalledFunctionNamePostfix = this.ApiCallPostfix,
                 ApiSignatureToDocString = this.ApiSignatureToBasicPyDocstringString,
                 Template = @"
+def _%CFUNCTION%_native(%CARGSNAMES%, size):
+    return %FUNCTION%(%CARGSNAMES%, size)
+
 def %WRAPFUNCTION%(%WRAPARGS%):
 %WRAPFUNCTIONDOCSTRING%
 %TRANSARGS%
     size = marshal.new_int_scalar_ptr()
-    values = %FUNCTION%(%ARGS%, size)
+    values = _%CFUNCTION%_native(%ARGS%, size)
 %CLEANTRANSARGS%
     result = " + convertingFunc + @"(values, size[0], True)
     return result
@@ -114,14 +124,58 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             return cw;
         }
 
-        public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
+        private void createFfiApiFunctionCall(StringBuilder sb, TypeAndName funcDef)
+        {
+            sb.Append(ApiCallPrefix + funcDef.VarName + ApiCallPostfix);
+        }
+
+        private bool createNativeWrapFuncBody(StringBuilder sb, FuncAndArgs funcAndArgs, Action<StringBuilder, TypeAndName> argFunc)
+        {
+            Dictionary<string, TransientArgumentConversion> tConv = new Dictionary<string, TransientArgumentConversion>();
+            var funcDef = GetTypeAndName(funcAndArgs.Function);
+            bool returnsVal = FunctionReturnsValue(funcDef);
+            bool ok = CreateFunctionCall(sb, funcAndArgs, argFunc, this.createFfiApiFunctionCall, tConv, funcDef, returnsVal);
+            if (!ok) return false;
+            CreateBodyReturnValueNative(sb, funcDef, returnsVal);
+            return true;
+        }
+
+        protected string createNativeWrappingFunctionBody(string line, FuncAndArgs funcAndArgs, StringBuilder sb, Action<StringBuilder, TypeAndName> argFunc)
+        {
+            string result;
+            sb.Append(BodyLineOpenFunctionDelimiter);
+            // AddInFunctionDocString(sb, funcAndArgs);
+            bool ok = createNativeWrapFuncBody(sb, funcAndArgs, argFunc);
+            sb.Append(BodyLineCloseFunctionDelimiter);
+            if (!ok)
+                result = line;
+            else
+                result = sb.ToString();
+            return result;
+        }
+
+        private string checkedNativeCall(string line, FuncAndArgs funcAndArgs)
         {
             var sb = new StringBuilder();
             if (!string.IsNullOrEmpty(FunctionWrappers))
-                //@convert_strings
                 //@check_exceptions
                 sb.Append(FunctionWrappers + EnvNewLine);
-            if (!createWrapFuncSignature(sb, funcAndArgs)) return line;
+            if (!createNakedWrapFuncSignature(sb, funcAndArgs)) return line;
+            string result = "";
+            result = createNativeWrappingFunctionBody(line, funcAndArgs, sb, NakedApiCallArgument);
+            return result;
+        }
+
+        protected override void CreateApiFunctionCallFunction(StringBuilder sb, TypeAndName funcDef)
+        {
+            sb.Append( "_" + funcDef.VarName + "_native");
+        }
+
+        public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
+        {
+            var sb = new StringBuilder();
+            sb.Append(checkedNativeCall(line, funcAndArgs));
+            if (!createTypedWrapFuncSignature(sb, funcAndArgs)) return line;
             string result = "";
             result = createWrappingFunctionBody(line, funcAndArgs, sb, ApiCallArgument);
             return result;
@@ -138,6 +192,11 @@ def %WRAPFUNCTION%(%WRAPARGS%):
         private void ApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
         {
             PythonApiToCApiType(sb, typeAndName.TypeName, typeAndName.VarName);
+        }
+
+        private void NakedApiCallArgument(StringBuilder sb, TypeAndName typeAndName)
+        {
+            sb.Append(typeAndName.VarName);
         }
 
         private void PythonApiToCApiType(StringBuilder sb, string typename, string varname)
@@ -246,7 +305,7 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             return sb.ToString();
         }
 
-        private bool createWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
+        private bool createTypedWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
         {
             // From:
             // SWIFT_API MODEL_SIMULATION_PTR SubsetModel(MODEL_SIMULATION_PTR simulation, const char* elementName, bool selectNetworkAboveElement, bool includeElementInSelection, bool invertSelection, char** terminationElements, int terminationElementsLength);
@@ -261,9 +320,33 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             return r;
         }
 
+        /// <summary>
+        /// Defines the signature of a thin low level wrapper call to the native function
+        /// </summary>
+        private bool createNakedWrapFuncSignature(StringBuilder sb, FuncAndArgs funcAndArgs)
+        {
+            // From:
+            // SWIFT_API MODEL_SIMULATION_PTR SubsetModel(MODEL_SIMULATION_PTR simulation, const char* elementName, bool selectNetworkAboveElement, bool includeElementInSelection, bool invertSelection, char** terminationElements, int terminationElementsLength);
+            // To e.g.:
+            // @checked_errors
+            //def SubsetModel_native(simulation, elementName, selectNetworkAboveElement, includeElementInSelection, invertSelection, terminationElements, terminationElementsLength):
+            var funcDecl = GetTypeAndName(funcAndArgs.Function);
+            string funcDef = "def _" + funcDecl.VarName + "_native";
+            sb.Append(funcDef);
+            bool r = AddFunctionArgs(sb, funcAndArgs, ApiArgToUntypedPyFunctionArgument);
+            // sb.Append(" -> " + PythonType(funcDecl.TypeName));
+            sb.Append(":");
+            return r;
+        }
+
         private void ApiArgToPyFunctionArgument(StringBuilder sb, TypeAndName typeAndName)
         {
             sb.Append(typeAndName.VarName + ":" + PythonType(typeAndName.TypeName));
+        }
+
+        private void ApiArgToUntypedPyFunctionArgument(StringBuilder sb, TypeAndName typeAndName)
+        {
+            sb.Append(typeAndName.VarName);
         }
 
         protected override void CreateBodyReturnValue(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
@@ -271,6 +354,16 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             if (returnsVal)
             {
                 string s = ("return " + PyWrap(funcDef.TypeName, ReturnedValueVarname));
+                AddBodyLine(sb, s);
+                // AddBodyLine(sb, "return x_res");
+            }
+        }
+
+        private void CreateBodyReturnValueNative(StringBuilder sb, TypeAndName funcDef, bool returnsVal)
+        {
+            if (returnsVal)
+            {
+                string s = ("return " + ReturnedValueVarname);
                 AddBodyLine(sb, s);
                 // AddBodyLine(sb, "return x_res");
             }
