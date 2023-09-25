@@ -39,6 +39,7 @@ namespace ApiWrapperGenerator
 
         private string checkReservedWords(string v)
         {
+            if (TypeAndName.reservedWords.Count == 0) return v;
             string y = v;
             foreach (var x in TypeAndName.ReservedWords)
             {

@@ -19,7 +19,7 @@ This package facilitates the generation of low-level language bindings from a C 
 library(devtools)
 h <- Sys.getenv('HOME')
 f <- file.path
-pkg_path <- f(h, 'src/github_jm/c-api-wrapper-generation/pkgs/codegen/capihelp')
+pkg_path <- f(h, 'src/c-api-wrapper-generation/pkgs/codegen/capihelp')
 ```
 
 ```R

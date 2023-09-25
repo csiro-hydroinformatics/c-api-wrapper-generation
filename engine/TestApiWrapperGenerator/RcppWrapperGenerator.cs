@@ -122,9 +122,11 @@ namespace TestApiWrapperGenerator
             gen.UniformIndentationCount = 2;
             gen.Indentation = "    ";
             gen.FunctionNamePostfix = "_RcppPostfix";
+            // we define a type mapping for the input arguments
             gen.SetTypeMap("values_vector*", "const NumericVector&");
-            gen.SetReturnedValueConversion("values_vector*", "NumericVector");
+            // for the output, returned values, however, we need special 
             gen.SetReturnedTypeMap("values_vector*", "NumericVector");
+            gen.SetReturnedValueConversion("values_vector*", "NumericVector(C_ARGNAME)");
             gen.SetTransientArgConversion("values_vector*", "_vv",
                 "values_vector* C_ARGNAME = cinterop::utils::to_values_vector_ptr(RCPP_ARGNAME);",
                 "cinterop::disposal::dispose_of<values_vector>(C_ARGNAME);");
@@ -137,6 +139,38 @@ namespace TestApiWrapperGenerator
 "            auto result = ConvertValues(values_vv);",
 "            cinterop::disposal::dispose_of<values_vector>(values_vv);",
 "            auto x = NumericVector(result);",
+"            return x;",
+"        }",
+"", // newline
+"" // newline, ie empty line after body.
+            };
+
+            CSharpWrapperGenerator.CheckWrappingFunction(filter, gen, apiLine, expectedLines);
+        }
+
+
+        [Fact]
+        public void DateTimeReturnedConverted()
+        {
+            string apiLine = @"    LAKEONED_API date_time_to_second StartTimeStamp(LAKE_MODEL_SIMULATION_PTR modelSimulation);";
+
+            HeaderFilter filter = new HeaderFilter();
+            filter.ContainsAny = new string[] { "LAKEONED_API" };
+            filter.ToRemove = new string[] { "LAKEONED_API" };
+            var gen = new RcppGlueWrapperGenerator();
+            gen.UniformIndentationCount = 2;
+            gen.Indentation = "    ";
+            gen.FunctionNamePostfix = "_RcppPostfix";
+            gen.SetTypeMap("date_time_to_second", "Rcpp::Datetime");
+            gen.SetReturnedTypeMap("date_time_to_second", "Rcpp::Datetime");
+            gen.SetReturnedValueConversion("date_time_to_second", "from_date_time_to_second<Rcpp::Datetime>(C_ARGNAME)");
+
+            string[] expectedLines = {
+"        // [[Rcpp::export]]",
+"        Rcpp::Datetime StartTimeStamp_RcppPostfix(XPtr<LAKE_MODEL_SIMULATION_PTR> modelSimulation)",
+"        {",
+"            auto result = StartTimeStamp(modelSimulation->Get());",
+"            auto x = from_date_time_to_second<Rcpp::Datetime>(result);",
 "            return x;",
 "        }",
 "", // newline

@@ -390,7 +390,6 @@ def %WRAPFUNCTION%(%WRAPARGS%):
                 return c.Apply(varname);
             else
                 return varname;
-            //return "TODO_" + typename + "(" + varname + ")";
         }
         private string AsOpaquePtr(string typename, string varname = "", bool instance = false) // ModelRunner* becomes   XPtr<ModelRunner>
         {

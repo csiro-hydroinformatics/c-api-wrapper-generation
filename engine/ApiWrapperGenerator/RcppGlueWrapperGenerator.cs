@@ -174,7 +174,7 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
         {
             if (IsKnownReturnedType(typename) || (IsKnownType(typename)))
                 return WrapAsRcppVector(typename, varname);
-            else if (IsPointer(typename))
+            else if (IsPointer(typename))   
                 return (createXPtr(typename, varname, true)); // XPtr<ModelRunner>(new OpaquePointer(varname))
             else
                 return WrapAsRcppVector(typename, varname);
@@ -186,7 +186,10 @@ NumericVector GetAtDimOne_Rcpp(XPtr<OpaquePointer> matrix, IntegerVector index, 
                 typename == "int" ||
                 typename == "bool")
                 return "Rcpp::wrap(" + varname + ")";
-            if (IsKnownReturnedType(typename))
+            var c = FindReturnedConverter(typename);
+            if (c != null)
+                return c.Apply(varname);
+            else if (IsKnownReturnedType(typename))
                 return ReturnedCppToRTypes(typename) + "(" + varname + ")";
             else
                 return CppToRTypes(typename) + "(" + varname + ")";

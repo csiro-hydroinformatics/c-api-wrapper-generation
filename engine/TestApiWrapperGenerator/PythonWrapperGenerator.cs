@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 using ApiWrapperGenerator;
@@ -58,22 +59,26 @@ namespace TestApiWrapperGenerator
             pyGen.FunctionNamePostfix = "_py_post";
 
             string[] expectedLines = {
-"@check_exceptions", 
-"def ApiFun_py_post(simulation:Any) -> int:", 
-"    \"\"\"ApiFun_py_post", 
-"    ", 
-"    ApiFun_py_post: generated wrapper function for API function ApiFun", 
-"    ", 
-"    Args:", 
-"        simulation (Any): simulation", 
-"    ", 
-"    Returns:", 
-"        (int): returned result", 
-"    ", 
-"    \"\"\"", 
-"    simulation_xptr = wrap_as_pointer_handle(simulation)", 
-"    result = libname_so.ApiFun(simulation_xptr.ptr)", 
-"    return result", 
+"@check_exceptions",
+"def _ApiFun_native(simulation):",
+"    result = libname_so.ApiFun(simulation)",
+"    return result",
+"",
+"def ApiFun_py_post(simulation:Any) -> int:",
+"    \"\"\"ApiFun_py_post",
+"    ",
+"    ApiFun_py_post: generated wrapper function for API function ApiFun",
+"    ",
+"    Args:",
+"        simulation (Any): simulation",
+"    ",
+"    Returns:",
+"        (int): returned result",
+"    ",
+"    \"\"\"",
+"    simulation_xptr = wrap_as_pointer_handle(simulation)",
+"    result = _ApiFun_native(simulation_xptr.ptr)",
+"    return result",
 "", 
 "", 
 ""};
@@ -84,20 +89,12 @@ namespace TestApiWrapperGenerator
 
         public static void CheckWrappingFunction(HeaderFilter filter, IApiConverter gen, string apiLine, string[] expectedLines, bool strict=true)
         {
-            var filtered = filter.FilterInput(apiLine);
-            var w = new WrapperGenerator(gen, filter);
-            var result = w.Convert(filtered);
-            string[] lines = SplitToLines(result);
-            // if (!strict)
-            //     lines = lines.Select(x => x.Trim()).ToArray();
-            CheckExpectedLines(expectedLines, lines);
+            CSharpWrapperGenerator.CheckWrappingFunction(filter, gen, apiLine, expectedLines, strict);
         }
 
         public static void CheckExpectedLines(string[] expectedLines, string[] lines)
         {
-            Assert.Equal(expectedLines.Length, lines.Length);
-            for (int i = 0; i < lines.Length; i++)
-                Assert.Equal(expectedLines[i], lines[i]);
+            CSharpWrapperGenerator.CheckExpectedLines(expectedLines, lines);
         }
 
         public static string[] SplitToLines(string s)
@@ -107,16 +104,7 @@ namespace TestApiWrapperGenerator
 
         public static string[] SplitToLines(string[] result)
         {
-            // for (int i = 0; i < result.Length; i++)
-            // {
-            //     if (result[i].Contains("\r"))
-            //         throw new FormatException("A line contains a carriage return character");
-            // }
-            Assert.Single(result);
-            string[] lines = result[0].Split(new string[] { /*Environment.NewLine, */"\n" }, StringSplitOptions.None);
-            //lines = (from l in lines select l.Trim()).ToArray();
-            //lines = (from l in lines select l.Replace("  ", " ")).ToArray();
-            return lines;
+            return CSharpWrapperGenerator.SplitToLines(result);
         }
     }
 }

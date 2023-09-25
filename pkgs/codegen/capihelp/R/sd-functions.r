@@ -1,5 +1,5 @@
 # library(devtools) ; 
-# load_all('/home/xyzxyz/src/github_jm/c-api-wrapper-generation/pkgs/codegen/capihelp')
+# load_all('/home/xyzxyz/src/c-api-wrapper-generation/pkgs/codegen/capihelp')
 # document('F:/src/csiro/stash/xyzxyz/swift/R/pkgs/swiftdev')
 # build('F:/src/csiro/stash/xyzxyz/swift/R/pkgs/swiftdev')
 # install('F:/src/csiro/stash/xyzxyz/swift/R/pkgs/swiftdev')
