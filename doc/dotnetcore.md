@@ -53,12 +53,13 @@ Looking good!
 `cd ~/src/c-api-wrapper-generation/engine/TestApiWrapperGenerator` `dotnet build -f netcoreapp3.1 TestApiWrapperGenerator.csproj`
 
 ```bash
-cd ~/src/c-api-wrapper-generation/ApiWrapperGenerator
+cd ~/src/c-api-wrapper-generation/engine/ApiWrapperGenerator
 dotnet restore ApiWrapperGenerator.sln
 ```
 
 ```bash
 dotnet build --configuration Release --no-restore ApiWrapperGenerator.sln
+dotnet build --configuration Debug --no-restore ApiWrapperGenerator.sln
 ```
 
 Tried to use myultiple target fw in proj files but this requires explicit cmd line option to compile without failure (otherwise tries to doo each FW target, which makes sense). Problematic for sulutions though, netcoreapp and netstandard cannot be both specified, right?
