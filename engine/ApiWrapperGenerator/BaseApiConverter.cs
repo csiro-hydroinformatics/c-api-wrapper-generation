@@ -279,7 +279,7 @@ namespace ApiWrapperGenerator
             return args;
         }
 
-        public string ApplyCustomWrapper(string line)
+        public virtual string ApplyCustomWrapper(string line)
         {
             foreach (var c in customWrappers)
             {
