@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using ApiWrapperGenerator;
 using Xunit;
+using Xunit.Sdk;
 
 namespace TestApiWrapperGenerator
 {
@@ -188,6 +190,11 @@ namespace TestApiWrapperGenerator
             var w = new WrapperGenerator(gen, filter);
             var result = w.Convert(filtered);
             string[] lines = SplitToLines(result);
+            // To debug on the cheap...:
+            // foreach (string x in lines)
+            // {
+            //     Console.WriteLine(x);
+            // }
             // if (!strict)
             //     lines = lines.Select(x => x.Trim()).ToArray();
             CheckExpectedLines(expectedLines, lines);
@@ -195,9 +202,23 @@ namespace TestApiWrapperGenerator
 
         public static void CheckExpectedLines(string[] expectedLines, string[] lines)
         {
-            Assert.Equal(expectedLines.Length, lines.Length);
+            bool samelen = (expectedLines.Length == lines.Length);
+            bool same_lines = true;
             for (int i = 0; i < lines.Length; i++)
-                Assert.Equal(expectedLines[i], lines[i]);
+                if (expectedLines[i] != lines[i])
+                {
+                    var s = String.Format("expected line:\n {0} \n but got:\n {1} \n", expectedLines[i], lines[i]);
+                    Console.WriteLine(s);
+                    same_lines= false;
+                }
+            if (!samelen || !same_lines)
+            {
+                var expected = string.Join("\n", expectedLines);
+                var actual = string.Join("\n", lines);
+                var s = String.Format("expected:\n {0} \n but got:\n {1} \n", expected, actual);
+                Console.WriteLine(s);
+                Assert.Fail("Generated and expected code lines differ");
+            }
         }
 
         public static string[] SplitToLines(string s)

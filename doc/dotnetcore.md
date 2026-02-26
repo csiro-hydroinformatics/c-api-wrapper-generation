@@ -26,7 +26,7 @@ Give a try to a 3rd party tool [CsprojToVs2017](https://github.com/hvanbakel/Csp
 
 `dotnet tool install --global Project2015To2017.Migrate2017.Tool` succeeds and provides useful advice as to PATH...
 
-`cd ~/src/github_jm/c-api-wrapper-generation/ApiWrapperGenerator` `dotnet migrate-2017 migrate ApiWrapperGenerator.sln`
+`cd ~/src/c-api-wrapper-generation/ApiWrapperGenerator` `dotnet migrate-2017 migrate ApiWrapperGenerator.sln`
 
 ```txt
 It was not possible to find any compatible framework version
@@ -50,15 +50,16 @@ dotnet build -f netstandard2.0  ApiWrapperGenerator.csproj
 
 Looking good!
 
-`cd ~/src/github_jm/c-api-wrapper-generation/TestApiWrapperGenerator` `dotnet build -f netcoreapp3.1 TestApiWrapperGenerator.csproj`
+`cd ~/src/c-api-wrapper-generation/engine/TestApiWrapperGenerator` `dotnet build -f netcoreapp3.1 TestApiWrapperGenerator.csproj`
 
 ```bash
-cd ~/src/github_jm/c-api-wrapper-generation/ApiWrapperGenerator
+cd ~/src/c-api-wrapper-generation/engine/ApiWrapperGenerator
 dotnet restore ApiWrapperGenerator.sln
 ```
 
 ```bash
 dotnet build --configuration Release --no-restore ApiWrapperGenerator.sln
+dotnet build --configuration Debug --no-restore ApiWrapperGenerator.sln
 ```
 
 Tried to use myultiple target fw in proj files but this requires explicit cmd line option to compile without failure (otherwise tries to doo each FW target, which makes sense). Problematic for sulutions though, netcoreapp and netstandard cannot be both specified, right?
@@ -68,7 +69,7 @@ Tried to use myultiple target fw in proj files but this requires explicit cmd li
 ```
 
 ```bash
-cd ~/src/github_jm/c-api-wrapper-generation/TestApiWrapperGenerator
+cd ~/src/c-api-wrapper-generation/engine/TestApiWrapperGenerator
 dotnet test TestApiWrapperGenerator.csproj 
 ```
 
@@ -76,7 +77,7 @@ dotnet test TestApiWrapperGenerator.csproj
 Build started, please wait...
 Build completed.
 
-Test run for /home/per202/src/github_jm/c-api-wrapper-generation/TestApiWrapperGenerator/bin/Debug/netcoreapp3.1/TestApiWrapperGenerator.dll(.NETCoreApp,Version=v2.0)
+Test run for /home/per202/src/c-api-wrapper-generation/engine/TestApiWrapperGenerator/bin/Debug/netcoreapp3.1/TestApiWrapperGenerator.dll(.NETCoreApp,Version=v2.0)
 Microsoft (R) Test Execution Command Line Tool Version 15.9.0
 Copyright (c) Microsoft Corporation.  All rights reserved.
 

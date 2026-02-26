@@ -26,6 +26,8 @@ namespace TestLineConversion
                 TestMatlabWrpGen(args);
             else if (gen == "r")
                 TestRWrpGen(args);
+            else if (gen == "rcpp")
+                TestRcppWrpGen(args);
             else if (gen == "p")
                 TestPyWrpGen(args);
             else
@@ -234,6 +236,13 @@ namespace TestLineConversion
         private static void TestRWrpGen(string[] args)
         {
             var gen = new RXptrWrapperGenerator();
+            gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
+            ProcessTestLine(args, gen);
+        }
+
+        private static void TestRcppWrpGen(string[] args)
+        {
+            var gen = new RcppGlueWrapperGenerator();
             gen.AddCustomWrapper(gen.ReturnsCharPtrPtrWrapper());
             ProcessTestLine(args, gen);
         }

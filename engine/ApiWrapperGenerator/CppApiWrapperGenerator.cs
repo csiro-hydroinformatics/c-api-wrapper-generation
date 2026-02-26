@@ -160,7 +160,7 @@ namespace ApiWrapperGenerator
             if (IsKnownType(typename))
                 return WrapAsCppType(typename, varname);
             else if (IsPointer(typename))
-                return (AsOpaquePtr(typename, varname, true));
+                return AsOpaquePtr(typename, varname, true);
             else
                 return WrapAsCppType(typename, varname);
         }

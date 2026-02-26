@@ -107,8 +107,7 @@ namespace ApiWrapperGenerator
                 CalledFunctionNamePrefix = this.ApiCallPrefix,
                 CalledFunctionNamePostfix = this.ApiCallPostfix,
                 ApiSignatureToDocString = this.ApiSignatureToBasicPyDocstringString,
-                Template = @"
-def _%CFUNCTION%_native(%CARGSNAMES%, size):
+                Template = @"def _%CFUNCTION%_native(%CARGSNAMES%, size):
     return %FUNCTION%(%CARGSNAMES%, size)
 
 def %WRAPFUNCTION%(%WRAPARGS%):
@@ -154,12 +153,18 @@ def %WRAPFUNCTION%(%WRAPARGS%):
             return result;
         }
 
+        private string getFuncWrappers()
+        {
+            if (!string.IsNullOrEmpty(FunctionWrappers))
+                //@check_exceptions
+                return FunctionWrappers + EnvNewLine;
+            return "";
+        }
+
         private string checkedNativeCall(string line, FuncAndArgs funcAndArgs)
         {
             var sb = new StringBuilder();
-            if (!string.IsNullOrEmpty(FunctionWrappers))
-                //@check_exceptions
-                sb.Append(FunctionWrappers + EnvNewLine);
+            sb.Append(getFuncWrappers());
             if (!createNakedWrapFuncSignature(sb, funcAndArgs)) return line;
             string result = "";
             result = createNativeWrappingFunctionBody(line, funcAndArgs, sb, NakedApiCallArgument);
@@ -168,8 +173,31 @@ def %WRAPFUNCTION%(%WRAPARGS%):
 
         protected override void CreateApiFunctionCallFunction(StringBuilder sb, TypeAndName funcDef)
         {
-            sb.Append( "_" + funcDef.VarName + "_native");
+            sb.Append("_" + funcDef.VarName + "_native");
         }
+
+        public override string ApplyCustomWrapper(string line)
+        {
+            string s;
+            // fallback to the original line, just return the line unchanged, to flag something is wrong. 
+            // This should not ahve been called.
+            // would return something like :
+            // @_s_wrap.check_exceptions
+            // char** GetRunoffModelIdentifiers(int* size);
+            s = line;
+            foreach (var c in customWrappers)
+            {
+                if (c.IsMatch(line))
+                {
+                    s = c.CreateWrapper(line, DeclarationOnly);
+                    break;
+                }
+            }
+            // generated lines appear with more newlines than we'd like. Not perfect but will do:
+            s = s.Replace(EnvNewLine + EnvNewLine, EnvNewLine);
+            return getFuncWrappers() + s;
+        }
+
 
         public override string ConvertApiLineSpecific(string line, FuncAndArgs funcAndArgs)
         {
@@ -390,7 +418,6 @@ def %WRAPFUNCTION%(%WRAPARGS%):
                 return c.Apply(varname);
             else
                 return varname;
-            //return "TODO_" + typename + "(" + varname + ")";
         }
         private string AsOpaquePtr(string typename, string varname = "", bool instance = false) // ModelRunner* becomes   XPtr<ModelRunner>
         {
